@@ -30,21 +30,19 @@ class EditorApp:
 
         self.editor_widget.set_highlight_rules(reglas)
         codigo_ejemplo = """fin
-            \tpalabra suma, numero1,numero2;
-            \tentero numero_decimal;
-            \tnumero nombre;
-            \tquiza bandera;
-            \tbandera = verdadero
-            \tnumero_decimal = 3.14
-            \tocultar ("Dame un numero");
-            \tborrar numero1
-            \tocultar ("Dame otro numero");
-            \tborrar numero2
-            \t# Este es un comentario #
-            \tsuma = numero1 - numero2
-
-            inicio
-            """
+            palabra suma, numero1,numero2;
+            entero numero_decimal;
+            numero nombre;
+            quiza bandera;
+            bandera = verdadero
+            numero_decimal = 3.14
+            ocultar ("Dame un numero");
+            borrar numero1
+            ocultar ("Dame otro numero");
+            borrar numero2
+            # Este es un comentario #
+            suma = numero1 - numero2
+            inicio"""
         # Texto inicial
         self.editor_widget.set_text(codigo_ejemplo)
 

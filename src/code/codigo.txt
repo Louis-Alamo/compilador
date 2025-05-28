@@ -11,4 +11,8 @@ fin
     borrar numero2
     # Este es un comentario #
     suma = numero1 - numero2
+    palabra suma, numero1,numero2;
+    palabra suma, numero1,numero2;
+
+
 inicio

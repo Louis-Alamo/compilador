@@ -1,0 +1,31 @@
+Token,Clase,Declaración,Referencia
+palabra,palabra reservada,3,-
+suma,identificador,3,14
+",",operador,3,3
+numero1,identificador,3,"10, 14"
+numero2,identificador,3,"12, 14"
+;,operador,3,"4, 5, 6, 9, 11"
+entero,palabra reservada,4,-
+numero_decimal,identificador,4,8
+numero,palabra reservada,5,-
+nombre,identificador,5,-
+quiza,palabra reservada,6,-
+bandera,identificador,6,7
+=,operador,7,"8, 14"
+verdadero,palabra reservada,7,-
+3.14,número,8,-
+ocultar,palabra reservada,9,11
+(,desconocido,9,11
+"""Dame un numero""",cadena,9,-
+),desconocido,9,11
+borrar,palabra reservada,10,12
+"""Dame otro numero""",cadena,11,-
+#,desconocido,13,13
+E,desconocido,13,-
+s,desconocido,13,-
+t,desconocido,13,-
+e,desconocido,13,-
+es,identificador,13,-
+un,identificador,13,-
+comentario,identificador,13,-
+-,operador,14,-

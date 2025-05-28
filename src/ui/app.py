@@ -17,6 +17,145 @@ class EditorApp:
         self.current_file_path = None
         self.file_explorer = None
 
+    def get_tab_widget_style(self):
+        """Retorna el estilo CSS para las pestañas con diseño minimalista"""
+        return """
+        QTabWidget {
+            background-color: #ffffff;
+            border: none;
+        }
+
+        QTabWidget::pane {
+            border: 1px solid #e0e0e0;
+            background-color: #ffffff;
+            border-radius: 6px;
+            margin-top: -1px;
+        }
+
+        QTabBar::tab {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #e0e0e0;
+            padding: 8px 20px;
+            margin-right: 2px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            border-bottom: none;
+            font-weight: 500;
+            font-size: 12px;
+            min-width: 80px;
+        }
+
+        QTabBar::tab:hover {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+
+        QTabBar::tab:selected {
+            background-color: #ffffff;
+            color: #212529;
+            border-bottom: 2px solid #007bff;
+            font-weight: 600;
+        }
+
+        QTabBar::tab:first {
+            margin-left: 0;
+        }
+
+        QTabBar {
+            qproperty-drawBase: 0;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        """
+
+    def get_text_edit_style(self):
+        """Retorna el estilo CSS para los QTextEdit"""
+        return """
+        QTextEdit {
+            background-color: #ffffff;
+            color: #212529;
+            border: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            padding: 15px;
+        }
+
+        QTextEdit:focus {
+            outline: none;
+        }
+
+        QScrollBar:vertical {
+            background-color: #f8f9fa;
+            width: 12px;
+            border: none;
+            border-radius: 6px;
+        }
+
+        QScrollBar::handle:vertical {
+            background-color: #ced4da;
+            border-radius: 6px;
+            min-height: 20px;
+            margin: 2px;
+        }
+
+        QScrollBar::handle:vertical:hover {
+            background-color: #adb5bd;
+        }
+
+        QScrollBar::add-line:vertical,
+        QScrollBar::sub-line:vertical {
+            border: none;
+            background: none;
+        }
+
+        QScrollBar:horizontal {
+            background-color: #f8f9fa;
+            height: 12px;
+            border: none;
+            border-radius: 6px;
+        }
+
+        QScrollBar::handle:horizontal {
+            background-color: #ced4da;
+            border-radius: 6px;
+            min-width: 20px;
+            margin: 2px;
+        }
+
+        QScrollBar::handle:horizontal:hover {
+            background-color: #adb5bd;
+        }
+
+        QScrollBar::add-line:horizontal,
+        QScrollBar::sub-line:horizontal {
+            border: none;
+            background: none;
+        }
+        """
+
+    def get_splitter_style(self):
+        """Retorna el estilo CSS para el splitter"""
+        return """
+        QSplitter::handle {
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+        }
+
+        QSplitter::handle:horizontal {
+            width: 3px;
+        }
+
+        QSplitter::handle:vertical {
+            height: 3px;
+        }
+
+        QSplitter::handle:hover {
+            background-color: #ced4da;
+        }
+        """
+
     def run(self):
         app = QApplication(sys.argv)
 
@@ -25,12 +164,53 @@ class EditorApp:
         main_window.setWindowTitle("Editor de Código Pitufos")
         main_window.resize(1200, 800)  # Aumentamos el ancho para el explorador
 
+        # Establecer estilo global para la aplicación
+        app.setStyleSheet("""
+        QMainWindow {
+            background-color: #ffffff;
+        }
+
+        QMenuBar {
+            background-color: #f8f9fa;
+            color: #212529;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 4px;
+        }
+
+        QMenuBar::item {
+            background-color: transparent;
+            padding: 6px 12px;
+            border-radius: 4px;
+        }
+
+        QMenuBar::item:selected {
+            background-color: #e9ecef;
+        }
+
+        QMenu {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 4px;
+        }
+
+        QMenu::item {
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+
+        QMenu::item:selected {
+            background-color: #f8f9fa;
+        }
+        """)
+
         # Widget principal
         central_widget = QWidget()
         layout = QHBoxLayout(central_widget)  # Cambio a horizontal
 
         # Splitter principal horizontal (explorador | editor+pestañas)
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        main_splitter.setStyleSheet(self.get_splitter_style())
 
         # === PANEL IZQUIERDO: EXPLORADOR DE ARCHIVOS ===
         self.file_explorer = FileExplorer()
@@ -40,30 +220,36 @@ class EditorApp:
 
         # === PANEL DERECHO: EDITOR + PESTAÑAS ===
         right_panel = QWidget()
+        right_panel.setStyleSheet("background-color: #ffffff;")
         right_layout = QVBoxLayout(right_panel)
 
         # Splitter vertical para editor y pestañas
         editor_splitter = QSplitter(Qt.Orientation.Vertical)
+        editor_splitter.setStyleSheet(self.get_splitter_style())
 
         # Editor
         self.editor_widget = CodeEditor()
         editor_splitter.addWidget(self.editor_widget)
 
-        # Pestañas para análisis
+        # Pestañas para análisis con estilo minimalista
         self.tab_widget = QTabWidget()
+        self.tab_widget.setStyleSheet(self.get_tab_widget_style())
 
-        # Crear pestañas
+        # Crear pestañas con estilo personalizado
         self.lexico_tab = QTextEdit()
         self.lexico_tab.setReadOnly(True)
         self.lexico_tab.setPlainText("Análisis léxico no ejecutado")
+        self.lexico_tab.setStyleSheet(self.get_text_edit_style())
 
         self.sintactico_tab = QTextEdit()
         self.sintactico_tab.setReadOnly(True)
         self.sintactico_tab.setPlainText("Análisis sintáctico no ejecutado")
+        self.sintactico_tab.setStyleSheet(self.get_text_edit_style())
 
         self.semantico_tab = QTextEdit()
         self.semantico_tab.setReadOnly(True)
         self.semantico_tab.setPlainText("Análisis semántico no ejecutado")
+        self.semantico_tab.setStyleSheet(self.get_text_edit_style())
 
         # Agregar pestañas
         self.tab_widget.addTab(self.lexico_tab, "LÉXICO")
@@ -396,4 +582,3 @@ Análisis completado exitosamente"""
         tab_names = ["LÉXICO", "SINTÁCTICO", "SEMÁNTICO"]
         if index < len(tab_names):
             print(f"Pestaña seleccionada: {tab_names[index]}")
-

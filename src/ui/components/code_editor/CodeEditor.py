@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QPlainTextEdit, QHBoxLayout
-from ui.components.code_editor.CustomHighlighter import CustomHighlighter
-from ui.components.NumberBar import NumberBar
+from .CustomHighlighter import CustomHighlighter
+from ..NumberBar import NumberBar
 
 
 class CodeEditor(QWidget):

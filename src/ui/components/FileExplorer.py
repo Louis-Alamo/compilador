@@ -15,64 +15,256 @@ class FileExplorer(QWidget):
         super().__init__(parent)
         self.current_directory = None
         self.setup_ui()
+        self.apply_styles()
 
     def setup_ui(self):
         """Configura la interfaz del explorador de archivos"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # Header con título y botón para seleccionar carpeta
-        header_layout = QHBoxLayout()
+        # Header con título EXPLORER y botón
+        header_widget = QWidget()
+        header_widget.setObjectName("headerWidget")
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(16, 8, 16, 8)
+        header_layout.setSpacing(10)
 
-        # Título
-        title_label = QLabel("Explorador de Archivos")
-        title_font = QFont()
-        title_font.setBold(True)
-        title_font.setPointSize(10)
-        title_label.setFont(title_font)
+        # Título EXPLORER
+        title_label = QLabel("EXPLORER")
+        title_label.setObjectName("explorerTitle")
         header_layout.addWidget(title_label)
 
-        # Botón para seleccionar carpeta
-        self.select_folder_btn = QPushButton("📁 Seleccionar Carpeta")
-        self.select_folder_btn.clicked.connect(self.select_directory)
-        self.select_folder_btn.setMaximumWidth(150)
-        header_layout.addWidget(self.select_folder_btn)
+        header_layout.addStretch()
 
-        layout.addLayout(header_layout)
+        # Botón de menú (tres puntos)
+        menu_btn = QPushButton("⋯")
+        menu_btn.setObjectName("menuButton")
+        menu_btn.clicked.connect(self.select_directory)
+        header_layout.addWidget(menu_btn)
 
-        # Label para mostrar la ruta actual
-        self.path_label = QLabel("Ninguna carpeta seleccionada")
-        self.path_label.setWordWrap(True)
-        self.path_label.setStyleSheet("color: gray; font-size: 9px; padding: 2px;")
-        layout.addWidget(self.path_label)
+        layout.addWidget(header_widget)
 
-        # Árbol de archivos
+        # Separador
+        separator = QWidget()
+        separator.setObjectName("separator")
+        separator.setFixedHeight(1)
+        layout.addWidget(separator)
+
+        # Árbol de archivos sin headers
         self.tree_widget = QTreeWidget()
-        self.tree_widget.setHeaderLabels(["Nombre", "Tipo", "Tamaño"])
+        self.tree_widget.setObjectName("fileTree")
+        self.tree_widget.setHeaderHidden(True)  # Ocultar headers
+        self.tree_widget.setRootIsDecorated(True)
         self.tree_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
         self.tree_widget.itemClicked.connect(self.on_item_clicked)
 
-        # Configurar columnas
-        header = self.tree_widget.header()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        # Configurar indentación como VS Code
+        self.tree_widget.setIndentation(12)
 
         layout.addWidget(self.tree_widget)
 
-        # Botón de actualizar
-        self.refresh_btn = QPushButton("🔄 Actualizar")
-        self.refresh_btn.clicked.connect(self.refresh_tree)
-        self.refresh_btn.setEnabled(False)
-        layout.addWidget(self.refresh_btn)
+        # Footer con información de la carpeta actual
+        self.status_label = QLabel("Selecciona una carpeta...")
+        self.status_label.setObjectName("statusLabel")
+        layout.addWidget(self.status_label)
+
+    def apply_styles(self):
+        """Aplica los estilos CSS similares a VS Code tema claro"""
+        self.setStyleSheet("""
+            /* Widget principal */
+            QWidget {
+                background-color: #ffffff;
+                color: #3c3c3c;
+                font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-size: 13px;
+            }
+
+            /* Header del explorer */
+            QWidget#headerWidget {
+                background-color: #f8f8f8;
+                border-bottom: 1px solid #e8e8e8;
+            }
+
+            /* Título EXPLORER */
+            QLabel#explorerTitle {
+                font-size: 11px;
+                font-weight: 600;
+                color: #6c6c6c;
+                letter-spacing: 0.8px;
+            }
+
+            /* Botón de menú */
+            QPushButton#menuButton {
+                background-color: transparent;
+                border: none;
+                color: #6c6c6c;
+                font-size: 16px;
+                font-weight: bold;
+                padding: 4px 8px;
+                border-radius: 3px;
+            }
+
+            QPushButton#menuButton:hover {
+                background-color: #e8e8e8;
+            }
+
+            QPushButton#menuButton:pressed {
+                background-color: #d0d0d0;
+            }
+
+            /* Separador */
+            QWidget#separator {
+                background-color: #e8e8e8;
+            }
+
+            /* TreeWidget principal */
+            QTreeWidget#fileTree {
+                background-color: #ffffff;
+                border: none;
+                outline: none;
+                font-size: 13px;
+                show-decoration-selected: 0;
+            }
+
+            /* Items del árbol */
+            QTreeWidget#fileTree::item {
+                padding: 2px 0px;
+                margin: 0px;
+                border: none;
+                height: 22px;
+            }
+
+            QTreeWidget#fileTree::item:hover {
+                background-color: #f0f0f0;
+            }
+
+            QTreeWidget#fileTree::item:selected {
+                background-color: #e7f3ff;
+                color: #3c3c3c;
+            }
+
+            QTreeWidget#fileTree::item:selected:active {
+                background-color: #0078d4;
+                color: white;
+            }
+
+            /* Ramas del árbol (flechas de expansión) */
+            QTreeWidget#fileTree::branch {
+                background: transparent;
+            }
+
+            QTreeWidget#fileTree::branch:has-children:!has-siblings:closed,
+            QTreeWidget#fileTree::branch:closed:has-children:has-siblings {
+                border-image: none;
+                image: none;
+            }
+
+            QTreeWidget#fileTree::branch:open:has-children:!has-siblings,
+            QTreeWidget#fileTree::branch:open:has-children:has-siblings {
+                border-image: none;
+                image: none;
+            }
+
+            QTreeWidget#fileTree::branch:has-children:!has-siblings:closed:hover,
+            QTreeWidget#fileTree::branch:closed:has-children:has-siblings:hover {
+                background-color: #e8e8e8;
+            }
+
+            /* Label de estado */
+            QLabel#statusLabel {
+                background-color: #f8f8f8;
+                border-top: 1px solid #e8e8e8;
+                padding: 8px 16px;
+                font-size: 12px;
+                color: #6c6c6c;
+            }
+
+            /* Scrollbars estilo VS Code */
+            QScrollBar:vertical {
+                background-color: transparent;
+                width: 14px;
+                margin: 0;
+            }
+
+            QScrollBar::handle:vertical {
+                background-color: #c4c4c4;
+                border-radius: 7px;
+                min-height: 20px;
+                margin: 2px;
+            }
+
+            QScrollBar::handle:vertical:hover {
+                background-color: #a6a6a6;
+            }
+
+            QScrollBar::handle:vertical:pressed {
+                background-color: #8a8a8a;
+            }
+
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+
+            QScrollBar:horizontal {
+                background-color: transparent;
+                height: 14px;
+                margin: 0;
+            }
+
+            QScrollBar::handle:horizontal {
+                background-color: #c4c4c4;
+                border-radius: 7px;
+                min-width: 20px;
+                margin: 2px;
+            }
+
+            QScrollBar::handle:horizontal:hover {
+                background-color: #a6a6a6;
+            }
+
+            QScrollBar::add-line:horizontal,
+            QScrollBar::sub-line:horizontal {
+                width: 0px;
+            }
+        """)
+
+    def get_file_icon(self, filename):
+        """Retorna el emoji del icono según el tipo de archivo"""
+        if os.path.isdir(filename):
+            return "📁"
+
+        extension = os.path.splitext(filename)[1].lower()
+
+        icons = {
+            '.py': '🐍',
+            '.js': '📜',
+            '.ts': '📘',
+            '.html': '🌐',
+            '.css': '🎨',
+            '.json': '📋',
+            '.md': '📝',
+            '.txt': '📄',
+            '.pdf': '📕',
+            '.jpg': '🖼️',
+            '.jpeg': '🖼️',
+            '.png': '🖼️',
+            '.gif': '🖼️',
+            '.zip': '📦',
+            '.env': '⚙️',
+            '.gitignore': '🚫',
+            '.sql': '🗃️',
+        }
+
+        return icons.get(extension, '📄')
 
     def select_directory(self):
         """Abre un diálogo para seleccionar una carpeta"""
         directory = QFileDialog.getExistingDirectory(
             self,
             "Seleccionar carpeta",
-            os.path.expanduser("~")  # Inicia en el directorio home del usuario
+            os.path.expanduser("~")
         )
 
         if directory:
@@ -82,8 +274,8 @@ class FileExplorer(QWidget):
         """Establece el directorio y actualiza el árbol de archivos"""
         if os.path.exists(directory_path) and os.path.isdir(directory_path):
             self.current_directory = directory_path
-            self.path_label.setText(f"📂 {directory_path}")
-            self.refresh_btn.setEnabled(True)
+            folder_name = os.path.basename(directory_path)
+            self.status_label.setText(f"📁 {folder_name}")
             self.populate_tree()
         else:
             QMessageBox.warning(self, "Error", "La carpeta seleccionada no existe o no es válida")
@@ -96,102 +288,65 @@ class FileExplorer(QWidget):
         self.tree_widget.clear()
 
         try:
-            # Obtener lista de archivos y carpetas
-            items = []
-            for item_name in os.listdir(self.current_directory):
-                item_path = os.path.join(self.current_directory, item_name)
+            # Crear item raíz con el nombre de la carpeta
+            root_name = os.path.basename(self.current_directory) or self.current_directory
+            root_item = QTreeWidgetItem([f"📁 {root_name.upper()}"])
+            root_item.setData(0, Qt.ItemDataRole.UserRole, self.current_directory)
+            self.tree_widget.addTopLevelItem(root_item)
 
-                if os.path.isdir(item_path):
-                    # Es una carpeta
-                    folder_item = QTreeWidgetItem([item_name, "Carpeta", ""])
-                    folder_item.setData(0, Qt.ItemDataRole.UserRole, item_path)
-                    folder_item.setText(0, f"📁 {item_name}")
-                    items.append(("folder", folder_item))
+            # Poblar recursivamente
+            self.populate_directory(root_item, self.current_directory)
 
-                    # Agregar archivos dentro de la carpeta
-                    try:
-                        for sub_item in os.listdir(item_path):
-                            sub_item_path = os.path.join(item_path, sub_item)
-                            if os.path.isfile(sub_item_path):
-                                file_size = self.get_file_size(sub_item_path)
-                                file_type = self.get_file_type(sub_item)
-                                sub_file_item = QTreeWidgetItem([sub_item, file_type, file_size])
-                                sub_file_item.setData(0, Qt.ItemDataRole.UserRole, sub_item_path)
-                                sub_file_item.setText(0, f"📄 {sub_item}")
-                                folder_item.addChild(sub_file_item)
-                    except PermissionError:
-                        # Si no se puede acceder a la carpeta, agregar un item indicativo
-                        no_access_item = QTreeWidgetItem(["❌ Sin acceso", "Error", ""])
-                        folder_item.addChild(no_access_item)
-
-                elif os.path.isfile(item_path):
-                    # Es un archivo
-                    file_size = self.get_file_size(item_path)
-                    file_type = self.get_file_type(item_name)
-                    file_item = QTreeWidgetItem([item_name, file_type, file_size])
-                    file_item.setData(0, Qt.ItemDataRole.UserRole, item_path)
-                    file_item.setText(0, f"📄 {item_name}")
-                    items.append(("file", file_item))
-
-            # Ordenar: primero carpetas, luego archivos
-            items.sort(key=lambda x: (x[0] == "file", x[1].text(0).lower()))
-
-            # Agregar items al árbol
-            for item_type, item in items:
-                self.tree_widget.addTopLevelItem(item)
+            # Expandir el item raíz
+            root_item.setExpanded(True)
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al cargar el directorio:\n{str(e)}")
 
-    def get_file_size(self, file_path):
-        """Obtiene el tamaño del archivo en formato legible"""
+    def populate_directory(self, parent_item, directory_path, max_depth=2, current_depth=0):
+        """Pobllar directorio recursivamente con límite de profundidad"""
+        if current_depth >= max_depth:
+            return
+
         try:
-            size = os.path.getsize(file_path)
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size < 1024:
-                    return f"{size:.1f} {unit}"
-                size /= 1024
-            return f"{size:.1f} TB"
-        except:
-            return "N/A"
+            items = []
 
-    def get_file_type(self, filename):
-        """Obtiene el tipo de archivo basado en la extensión"""
-        if '.' not in filename:
-            return "Archivo"
+            # Obtener y ordenar contenido
+            for item_name in os.listdir(directory_path):
+                if item_name.startswith('.') and item_name not in ['.env', '.gitignore']:
+                    continue  # Saltar archivos ocultos excepto algunos importantes
 
-        extension = filename.split('.')[-1].lower()
+                item_path = os.path.join(directory_path, item_name)
 
-        file_types = {
-            'txt': 'Texto',
-            'py': 'Python',
-            'js': 'JavaScript',
-            'html': 'HTML',
-            'css': 'CSS',
-            'json': 'JSON',
-            'xml': 'XML',
-            'md': 'Markdown',
-            'cpp': 'C++',
-            'c': 'C',
-            'java': 'Java',
-            'php': 'PHP',
-            'sql': 'SQL',
-            'csv': 'CSV',
-            'pdf': 'PDF',
-            'doc': 'Word',
-            'docx': 'Word',
-            'xls': 'Excel',
-            'xlsx': 'Excel',
-            'png': 'Imagen',
-            'jpg': 'Imagen',
-            'jpeg': 'Imagen',
-            'gif': 'Imagen',
-            'zip': 'Comprimido',
-            'rar': 'Comprimido',
-            '7z': 'Comprimido',
-        }
+                if os.path.isdir(item_path):
+                    icon = "📁"
+                    folder_item = QTreeWidgetItem([f"{icon} {item_name}"])
+                    folder_item.setData(0, Qt.ItemDataRole.UserRole, item_path)
+                    items.append(("folder", folder_item, item_path))
 
-        return file_types.get(extension, extension.upper())
+                elif os.path.isfile(item_path):
+                    icon = self.get_file_icon(item_name)
+                    file_item = QTreeWidgetItem([f"{icon} {item_name}"])
+                    file_item.setData(0, Qt.ItemDataRole.UserRole, item_path)
+                    items.append(("file", file_item, None))
+
+            # Ordenar: carpetas primero, luego archivos alfabéticamente
+            items.sort(key=lambda x: (x[0] == "file", x[1].text(0).lower()))
+
+            # Agregar items al padre
+            for item_type, item_widget, sub_path in items:
+                parent_item.addChild(item_widget)
+
+                # Si es carpeta, poblar recursivamente
+                if item_type == "folder" and sub_path:
+                    self.populate_directory(item_widget, sub_path, max_depth, current_depth + 1)
+
+        except PermissionError:
+            no_access_item = QTreeWidgetItem(["❌ Sin acceso"])
+            parent_item.addChild(no_access_item)
+        except Exception as e:
+            error_item = QTreeWidgetItem([f"❌ Error: {str(e)[:30]}..."])
+            parent_item.addChild(error_item)
 
     def on_item_clicked(self, item, column):
         """Se ejecuta cuando se hace clic en un item"""
@@ -205,18 +360,10 @@ class FileExplorer(QWidget):
 
         if file_path:
             if os.path.isfile(file_path):
-                # Es un archivo - emitir señal
                 print(f"Abriendo archivo: {file_path}")
                 self.file_selected.emit(file_path)
             elif os.path.isdir(file_path):
-                # Es una carpeta - expandir/contraer
                 item.setExpanded(not item.isExpanded())
-
-    def refresh_tree(self):
-        """Actualiza el árbol de archivos"""
-        if self.current_directory:
-            self.populate_tree()
-            print("Árbol de archivos actualizado")
 
     def get_current_directory(self):
         """Retorna el directorio actual"""
@@ -225,7 +372,7 @@ class FileExplorer(QWidget):
     def is_text_file(self, file_path):
         """Verifica si un archivo es de texto plano"""
         text_extensions = {'.txt', '.py', '.js', '.html', '.css', '.json', '.xml',
-                           '.md', '.cpp', '.c', '.java', '.php', '.sql', '.csv'}
+                           '.md', '.cpp', '.c', '.java', '.php', '.sql', '.csv', '.ts'}
 
         _, ext = os.path.splitext(file_path.lower())
         return ext in text_extensions

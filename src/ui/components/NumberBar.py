@@ -5,9 +5,6 @@ from PyQt6.QtGui import QPainter, QColor
 
 
 
-
-
-
 class NumberBar(QWidget):
     def __init__(self, editor):
         super().__init__(editor)

@@ -1,76 +1,49 @@
-# CustomHighlighter mejorado
 from PyQt6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
 from PyQt6.QtCore import QRegularExpression
-import re
-
 
 class CustomHighlighter(QSyntaxHighlighter):
     def __init__(self, parent):
         super().__init__(parent)
         self.rules = []
+        self.error_ranges = []
+
+        # Formato exclusivo para errores
+        self.error_format = QTextCharFormat()
+        self.error_format.setUnderlineColor(QColor("#ff5555"))  # Rojo para errores
+        self.error_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
 
     def set_rules(self, rule_definitions: dict):
-        """
-        Configura las reglas de highlighting con colores más modernos
-        """
         self.rules = []
 
         for category, (words, fmt_options) in rule_definitions.items():
             fmt = QTextCharFormat()
 
-            # Configurar color
             if 'color' in fmt_options:
-                color = fmt_options['color']
-                if isinstance(color, str):
-                    if color.startswith('#'):
-                        fmt.setForeground(QColor(color))
-                    else:
-                        fmt.setForeground(QColor(color))
-                else:
-                    fmt.setForeground(color)
-
-            # Configurar peso de fuente
+                fmt.setForeground(QColor(fmt_options['color']))
             if fmt_options.get('bold', False):
                 fmt.setFontWeight(QFont.Weight.Bold)
-
-            # Configurar cursiva
             if fmt_options.get('italic', False):
                 fmt.setFontItalic(True)
 
-            # Configurar subrayado
-            if fmt_options.get('underline', False):
-                fmt.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SingleUnderline)
-                if 'underline_color' in fmt_options:
-                    underline_color = fmt_options['underline_color']
-                    if isinstance(underline_color, str):
-                        fmt.setUnderlineColor(QColor(underline_color))
-                    else:
-                        fmt.setUnderlineColor(underline_color)
+            # Eliminamos el subrayado por defecto aquí
+            # No aplicamos fmt.setUnderlineStyle()
 
-            # Crear patrones para cada palabra
             for word in words:
-                word = word.strip()
-                if not word:
-                    continue
-
-                # Escapar caracteres especiales de regex
-                escaped_word = re.escape(word)
-
-                # Crear patrón que coincida con palabras completas
-                pattern = QRegularExpression(rf"\b{escaped_word}\b")
+                pattern = QRegularExpression(rf"\b{word}\b")
                 pattern.setPatternOptions(QRegularExpression.PatternOption.CaseInsensitiveOption)
+                self.rules.append((pattern, fmt))
 
-                if pattern.isValid():
-                    self.rules.append((pattern, fmt))
+        self.rehighlight()
 
-        # Actualizar highlighting
+    def set_errors(self, errores):
+        """Recibe una lista de errores con posición y longitud"""
+        self.error_ranges = [(e["pos"], e["long"]) for e in errores]
         self.rehighlight()
 
     def highlightBlock(self, text):
-        """
-        Aplica el highlighting al bloque de texto
-        """
-        # Aplicar todas las reglas
+        block_pos = self.currentBlock().position()
+
+        # Aplicar reglas de resaltado
         for pattern, fmt in self.rules:
             iterator = pattern.globalMatch(text)
             while iterator.hasNext():
@@ -79,34 +52,9 @@ class CustomHighlighter(QSyntaxHighlighter):
                 length = match.capturedLength()
                 self.setFormat(start, length, fmt)
 
-
-# Ejemplo de uso con colores modernos
-def get_python_highlight_rules():
-    """
-    Retorna reglas de highlighting para Python con colores modernos
-    """
-    return {
-        'keywords': ([
-                         'and', 'as', 'assert', 'break', 'class', 'continue', 'def',
-                         'del', 'elif', 'else', 'except', 'finally', 'for', 'from',
-                         'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal',
-                         'not', 'or', 'pass', 'raise', 'return', 'try', 'while',
-                         'with', 'yield', 'async', 'await'
-                     ], {"color": "#cf222e", "bold": True}),
-
-        'builtins': ([
-                         'print', 'input', 'len', 'range', 'str', 'int', 'float',
-                         'bool', 'list', 'dict', 'tuple', 'set', 'open', 'file',
-                         'abs', 'all', 'any', 'bin', 'hex', 'oct', 'ord', 'chr'
-                     ], {"color": "#8250df", "bold": False}),
-
-        'special': ([
-                        'self', 'cls', '__init__', '__name__', '__main__',
-                        'True', 'False', 'None'
-                    ], {"color": "#0969da", "bold": True}),
-
-        'types': ([
-                      'Exception', 'ValueError', 'TypeError', 'IndexError',
-                      'KeyError', 'AttributeError', 'ImportError'
-                  ], {"color": "#1f883d", "italic": True})
-    }
+        # Subrayar errores
+        for start, length in self.error_ranges:
+            if block_pos <= start < block_pos + len(text):
+                relative_start = start - block_pos
+                if relative_start >= 0:
+                    self.setFormat(relative_start, length, self.error_format)

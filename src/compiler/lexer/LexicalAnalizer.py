@@ -1,129 +1,124 @@
 import re
-import csv
-from collections import defaultdict
 
-class LexicalAnalyzer:
-    def __init__(self, code: str):
-        self.code = code
-        self.token_data = {}  # {token: {'clase': str, 'declaracion': int, 'referencias': set}}
-        self.errors = []
-
-        self.keywords = {
-            "fin", "inicio", "palabra", "entero", "numero", "quiza",
-            "ocultar", "borrar", "verdadero", "falso", "AND", "OR", "NOT"
+class LexicalAnalizer:
+    def __init__(self):
+        self.palabras_reservadas = {
+            'fin', 'inicio', 'palabra', 'entero', 'numero', 'quiza',
+            'ocultar', 'borrar', 'verdadero', 'falso',
+            'AND', 'OR', 'NOT'
         }
-        self.operators = {
-            "+", "-", "*", "/", "=", "==", "!=", "<", ">",
-        }
+        self.operadores = ['+', '-', '*', '/', '=', '==', '!=', '<', '>']
+        self.delimitador = ';'
 
-        self.variable_pattern = re.compile(r"^[a-z][a-z0-9_]*$")
+    def analizar(self, codigo):
+        tokens = {}
+        errores = []
+        posicion = 0
+        linea = 1
+        dentro_de_comillas = False
 
-    def get_class(self, token: str, kind: str):
-        if kind == "KEYWORD":
-            return "palabra reservada"
-        elif kind == "OPERATOR":
-            return "operador"
-        elif kind == "IDENTIFIER":
-            return "identificador"
-        elif kind == "NUMBER":
-            return "número"
-        elif kind == "STRING":
-            return "cadena"
-        else:
-            return "carácter"
+        lineas_codigo = [l.strip() for l in codigo.strip().splitlines() if l.strip() != '']
+        if not (lineas_codigo and lineas_codigo[0] == 'fin' and lineas_codigo[-1] == 'inicio'):
+            errores.append({"mensaje": "Error: el código debe comenzar con 'fin' y terminar con 'inicio'.", "pos": 0, "long": 3, "linea": 1})
 
-    def tokenize(self):
-        lines = [line.rstrip() for line in self.code.splitlines()]
-        non_empty_lines = [(i + 1, line.strip()) for i, line in enumerate(lines) if line.strip() != ""]
+        while posicion < len(codigo):
+            c = codigo[posicion]
 
-        if not non_empty_lines:
-            self.errors.append("Código vacío")
-            return
+            if c == '\n':
+                linea += 1
+                posicion += 1
+                continue
 
-        first_line_num, first_line = non_empty_lines[0]
-        last_line_num, last_line = non_empty_lines[-1]
+            if c.isspace():
+                posicion += 1
+                continue
 
-        if first_line != "fin":
-            self.errors.append(f"El programa debe comenzar con 'fin' (línea {first_line_num})")
-        if last_line != "inicio":
-            self.errors.append(f"El programa debe terminar con 'inicio' (línea {last_line_num})")
+            if c in '()#,"':
+                posicion += 1
+                continue
 
-        core_lines = non_empty_lines[1:-1]
+            if c == ',':
+                posicion += 1
+                continue
 
-        token_specification = [
-            ("COMMENT", r"#.*?#"),
-            ("STRING", r'"[^"]*"'),
-            ("NUMBER", r"\b\d+(\.\d+)?\b"),
-            ("OPERATOR", r"==|!=|<=|>=|[+\-*/=<>;,]"),
-            ("KEYWORD", r"\b(" + "|".join(self.keywords) + r")\b"),
-            ("IDENTIFIER", r"\b[a-z][a-z0-9_]*\b"),
-            ("SKIP", r"[ \t]+"),
-            ("MISMATCH", r"."),
-        ]
-        tok_regex = "|".join("(?P<%s>%s)" % pair for pair in token_specification)
+            if c == self.delimitador:
+                posicion += 1
+                continue
 
-        for line_num, line in core_lines:
-            for mo in re.finditer(tok_regex, line):
-                kind = mo.lastgroup
-                value = mo.group()
-
-                if kind in ("SKIP", "COMMENT"):
-                    continue
-                elif kind == "MISMATCH":
-                    self.errors.append(f"Carácter inesperado '{value}' en línea {line_num}")
+            for op in sorted(self.operadores, key=len, reverse=True):
+                if codigo.startswith(op, posicion):
+                    posicion += len(op)
+                    break
+            else:
+                match_decimal = re.match(r'[0-9]+\.[0-9]+', codigo[posicion:])
+                if match_decimal:
+                    lexema = match_decimal.group(0)
+                    siguiente_pos = posicion + len(lexema)
+                    if siguiente_pos < len(codigo) and codigo[siguiente_pos].isalpha():
+                        errores.append({"mensaje": f"Número decimal inválido '{lexema + codigo[siguiente_pos]}'", "pos": posicion, "long": len(lexema) + 1, "linea": linea})
+                        posicion += len(lexema) + 1
+                    else:
+                        posicion += len(lexema)
                     continue
 
-                clase = self.get_class(value, kind)
-
-                if kind == "IDENTIFIER" and not self.variable_pattern.match(value):
-                    self.errors.append(f"Nombre de variable inválido '{value}' en línea {line_num}")
+                match_entero = re.match(r'[0-9]+', codigo[posicion:])
+                if match_entero:
+                    lexema = match_entero.group(0)
+                    siguiente_pos = posicion + len(lexema)
+                    if siguiente_pos < len(codigo) and (codigo[siguiente_pos].isalpha() or codigo[siguiente_pos] == '.'):
+                        errores.append({"mensaje": f"Número entero inválido '{lexema + codigo[siguiente_pos]}'", "pos": posicion, "long": len(lexema) + 1, "linea": linea})
+                        posicion += len(lexema) + 1
+                    else:
+                        posicion += len(lexema)
                     continue
 
-                if value not in self.token_data:
-                    self.token_data[value] = {
-                        "clase": clase,
-                        "declaracion": line_num,
-                        "referencias": set()
-                    }
-                else:
-                    self.token_data[value]["referencias"].add(line_num)
+                match_id = re.match(r'[a-z][a-z0-9_]*', codigo[posicion:])
+                if match_id:
+                    lexema = match_id.group(0)
+                    if lexema in self.palabras_reservadas:
+                        posicion += len(lexema)
+                    else:
+                        posicion += len(lexema)
+                    continue
 
-    def save_to_csv(self, output_file="tokens_clasificados.csv", error_file="errores.csv"):
-        with open(output_file, mode="w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Token", "Clase", "Declaración", "Referencia"])
+                match_error_num = re.match(r'[0-9][a-zA-Z0-9_]*', codigo[posicion:])
+                if match_error_num:
+                    lexema = match_error_num.group(0)
+                    errores.append({"mensaje": f"Identificador inválido '{lexema}'", "pos": posicion, "long": len(lexema), "linea": linea})
+                    posicion += len(lexema)
+                    continue
 
-            for token, data in self.token_data.items():
-                refs = sorted(data["referencias"])
-                referencias = ";".join(map(str, refs)) if refs else ""
-                writer.writerow([token, data["clase"], data["declaracion"], referencias])
+                if c == '-':
+                    errores.append({"mensaje": "Carácter '-' no permitido al inicio de identificador.", "pos": posicion, "long": 1, "linea": linea})
+                    posicion += 1
+                    continue
 
-        # Guardar errores
-        with open(error_file, mode="w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Mensaje"])
-            for error in self.errors:
-                writer.writerow([error])
+                errores.append({"mensaje": f"Carácter inesperado '{c}'", "pos": posicion, "long": 1, "linea": linea})
+                posicion += 1
 
-
-# Código de ejemplo
-codigo = """fin
-palabra 4suma, numero1,numero2;
-entero 4numero_decimal;
-numero nombre;
-quiza bandera;
-bandera = verdadero
-numero_decimal = 3.14
-ocultar ("Dame un numero");
-borrar numero1
-ocultar ("Dame otro numero");
-borrar numero2
-# Este es un comentario #
-suma = numero1 - numero2
-inicio"""
-
-lexer = LexicalAnalyzer(codigo)
-lexer.tokenize()
-lexer.save_to_csv()
-
-print("✅ Archivo 'tokens_clasificados.csv' generado con éxito.")
+        return tokens, errores
+#
+# if __name__ == "__main__":
+#     codigo = """fin
+#     palabra suma, numero1, numero2
+#     entero numero_decimal
+#     numero nombre
+#     quiza bandera
+#     bandera = verdadero
+#     numero_decimal = 3.14
+#     ocultar ("Dame un numero")
+#     borrar numero1
+#     ocultar ("Dame otro numero")
+#     borrar numero2
+#     # comentario #
+#     suma = numero1 - numero2
+# inicio"""
+#
+#     analizador = LexicalAnalizer()
+#     tokens, errores = analizador.analizar(codigo)
+#     analizador.mostrar_resultados(tokens, errores)
+#
+#
+#     analizador = LexicalAnalizer()
+#     tokens, errores = analizador.analizar(codigo)
+#     analizador.mostrar_resultados(tokens, errores)

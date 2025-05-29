@@ -488,93 +488,19 @@ inicio"""
 
         if tipo_analisis == "Léxico":
             # Simular análisis léxico
-            resultado = """ANÁLISIS LÉXICO COMPLETADO
 
-Tokens encontrados:
-- PALABRA_RESERVADA: 'fin' (línea 1)
-- PALABRA_RESERVADA: 'palabra' (línea 2)
-- IDENTIFICADOR: 'suma' (línea 2)
-- OPERADOR: ',' (línea 2)
-- IDENTIFICADOR: 'numero1' (línea 2)
-- OPERADOR: ',' (línea 2)
-- IDENTIFICADOR: 'numero2' (línea 2)
-- DELIMITADOR: ';' (línea 2)
-- PALABRA_RESERVADA: 'entero' (línea 3)
-- IDENTIFICADOR: 'numero_decimal' (línea 3)
-- DELIMITADOR: ';' (línea 3)
-- PALABRA_RESERVADA: 'numero' (línea 4)
-- IDENTIFICADOR: 'nombre' (línea 4)
-- DELIMITADOR: ';' (línea 4)
-- PALABRA_RESERVADA: 'quiza' (línea 5)
-- IDENTIFICADOR: 'bandera' (línea 5)
-- DELIMITADOR: ';' (línea 5)
-
-Total de tokens: 47
-Errores léxicos: 0"""
-            self.lexico_tab.setPlainText(resultado)
+            self.lexico_tab.setPlainText("ANÁLISIS LÉXICO COMPLETADO\n\n")
             self.tab_widget.setCurrentIndex(0)  # Cambiar a pestaña léxico
 
         elif tipo_analisis == "Sintáctico":
             # Simular análisis sintáctico
-            resultado = """ANÁLISIS SINTÁCTICO COMPLETADO
-
-Árbol de análisis sintáctico:
-PROGRAMA
-├── DECLARACIONES
-│   ├── DECLARACION_VARIABLE
-│   │   ├── TIPO: 'palabra'
-│   │   └── LISTA_IDENTIFICADORES: 'suma', 'numero1', 'numero2'
-│   ├── DECLARACION_VARIABLE
-│   │   ├── TIPO: 'entero'
-│   │   └── IDENTIFICADOR: 'numero_decimal'
-│   ├── DECLARACION_VARIABLE
-│   │   ├── TIPO: 'numero'
-│   │   └── IDENTIFICADOR: 'nombre'
-│   └── DECLARACION_VARIABLE
-│       ├── TIPO: 'quiza'
-│       └── IDENTIFICADOR: 'bandera'
-├── INSTRUCCIONES
-│   ├── ASIGNACION
-│   │   ├── IDENTIFICADOR: 'bandera'
-│   │   └── VALOR: 'verdadero'
-│   ├── ASIGNACION
-│   │   ├── IDENTIFICADOR: 'numero_decimal'
-│   │   └── VALOR: 3.14
-│   └── OPERACION
-│       ├── IDENTIFICADOR: 'suma'
-│       ├── OPERADOR: '-'
-│       └── OPERANDOS: 'numero1', 'numero2'
-
-Errores sintácticos: 0
-Estructura válida: ✓"""
-            self.sintactico_tab.setPlainText(resultado)
+            self.sintactico_tab.setPlainText("ANÁLISIS SINTÁCTICO COMPLETADO\n\n")
             self.tab_widget.setCurrentIndex(1)  # Cambiar a pestaña sintáctico
 
         elif tipo_analisis == "Semántico":
             # Simular análisis semántico
-            resultado = """ANÁLISIS SEMÁNTICO COMPLETADO
 
-Tabla de símbolos:
-┌──────────────────┬──────────┬─────────┬─────────────┐
-│ Identificador    │ Tipo     │ Alcance │ Valor       │
-├──────────────────┼──────────┼─────────┼─────────────┤
-│ suma             │ palabra  │ global  │ no asignado │
-│ numero1          │ palabra  │ global  │ no asignado │
-│ numero2          │ palabra  │ global  │ no asignado │
-│ numero_decimal   │ entero   │ global  │ 3.14        │
-│ nombre           │ numero   │ global  │ no asignado │
-│ bandera          │ quiza    │ global  │ verdadero   │
-└──────────────────┴──────────┴─────────┴─────────────┘
-
-Verificaciones de tipo:
-✓ Asignación 'bandera = verdadero' - Compatible: quiza ← booleano
-⚠ Asignación 'numero_decimal = 3.14' - Advertencia: entero ← decimal
-✓ Operación 'suma = numero1 - numero2' - Compatible: palabra ← palabra
-
-Errores semánticos: 0
-Advertencias: 1
-Análisis completado exitosamente"""
-            self.semantico_tab.setPlainText(resultado)
+            self.semantico_tab.setPlainText("ANÁLISIS SEMÁNTICO COMPLETADO\n\n")
             self.tab_widget.setCurrentIndex(2)  # Cambiar a pestaña semántico
 
     def on_tab_changed(self, index):

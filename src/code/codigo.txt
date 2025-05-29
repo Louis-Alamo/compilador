@@ -13,6 +13,7 @@ fin
     suma = numero1 - numero2
     palabra suma, numero1,numero2;
     palabra suma, numero1,numero2;
+carac
 
 
 inicio

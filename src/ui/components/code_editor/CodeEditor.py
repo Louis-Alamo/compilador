@@ -3,7 +3,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 from .CustomHighlighter import CustomHighlighter
 from ..NumberBar import NumberBar
-from src.compiler.lexer.LexicalAnalizer import LexicalAnalizer
+from src.compiler.lexer.LexicalAnalizer import LexicalAnalyzer
 
 
 class CodeEditor(QWidget):
@@ -20,10 +20,10 @@ class CodeEditor(QWidget):
         # Temporizador para análisis léxico cada 5 segundos
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.run_lexer)
-        self.timer.start(5000)
+        self.timer.start(1000)
 
     def setup_editor(self):
-        font = QFont("Fira Code", 16)  # Aumentado el tamaño a 16
+        font = QFont("Fira Code", 18)  # Aumentado el tamaño a 16
         font.setStyleHint(QFont.StyleHint.Monospace)
         font.setFixedPitch(True)
         self.editor.setFont(font)
@@ -41,8 +41,8 @@ class CodeEditor(QWidget):
 
     def run_lexer(self):
         codigo = self.get_text()
-        analizador = LexicalAnalizer()
-        _, errores = analizador.analizar(codigo)
+        analizador = LexicalAnalyzer(codigo)
+        errores = analizador.analyze()
         self.highlighter.set_errors(errores)  # Red underline in highlighter
 
     def set_highlight_rules(self, rule_definitions: dict):

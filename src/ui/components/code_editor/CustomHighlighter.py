@@ -29,6 +29,9 @@ class CustomHighlighter(QSyntaxHighlighter):
             # No aplicamos fmt.setUnderlineStyle()
 
             for word in words:
+                if not word or not word.isidentifier():
+                    # Salta palabras vacías o no identificadores válidos
+                    continue
                 pattern = QRegularExpression(rf"\b{word}\b")
                 pattern.setPatternOptions(QRegularExpression.PatternOption.CaseInsensitiveOption)
                 self.rules.append((pattern, fmt))

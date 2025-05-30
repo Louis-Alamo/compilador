@@ -3,6 +3,41 @@ import tkinter as tk
 from tkinter import ttk
 import csv
 
+
+class LexicalAnalyzer:
+    _instance = None
+
+    def __new__(cls, code):
+        if cls._instance is None:
+            cls._instance = super(LexicalAnalyzer, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, code):
+        # Solo actualiza el código si cambia
+        if not hasattr(self, 'initialized') or self.code != code:
+            self.code = code
+            self.errors = []
+            self.tokens = []
+            self.has_errors = False
+            self.initialized = True
+
+    def analyze(self):
+        # Primero: analizar errores léxicos
+        error_checker = LexicalAnalyzerErrors(self.code)
+        errores = error_checker.analyze()
+        self.errors = errores
+
+        if errores:  # Si hay errores, retorna True y no analiza tokens
+            self.has_errors = True
+            return True
+        else:
+            # Si NO hay errores, analizar tokens
+            tokens_checker = LexicalAnalyzerTokens(self.code)
+            tokens_checker.analyze()
+            self.tokens = tokens_checker.tokens_rows
+            self.has_errors = False
+            return False
+
 class LexicalAnalyzerTokens:
     def __init__(self, code):
         self.code_lines = [line.rstrip() for line in code.strip().split('\n')]
@@ -87,6 +122,7 @@ class LexicalAnalyzerTokens:
                     cursor = match.end()
                 else:
                     cursor += 1
+        self.save_tokens_csv()
         return self.errors
 
     def save_tokens_csv(self, filename="tokens_lista.csv"):
@@ -262,22 +298,43 @@ class LexicalAnalyzerErrors:
         self.check_no_extra_fin_inicio()
         self.check_reserved_words()
         self.check_identifiers_and_numbers()
+        self.save_errors_txt()
         return self.errors
 
+    def save_errors_txt(self, filename="errores_lexicos.txt"):
+        with open(filename, "w", encoding="utf-8") as f:
+            if not self.errors:
+                f.write("¡No se encontraron errores léxicos!\n")
+            else:
+                for err in self.errors:
+                    f.write(f"Línea {err['line']}: {err['error']}\n")
 
-# ----------- EJEMPLO DE USO ------------
+
+
+"""
 codigo = """
+"""
 fin
-    palabra nombre = 12.1;
-    palabra x = 01;
-    palabra y = 3.14;
+    1palabra .nombre = 12.1;
+    1palabra x = 1A;
+    palabra y = 3.f4;
     ocultar ("hola mundo", nombre);
     # esto es comentario #
-    nombre = nombre + x;
+    nombre = Anombre + x;
     nombre = nombre + y;
     x = x + 1;
-    ( )
-    ()
-    ()
 inicio
+"""
+"""
+# ---- Análisis de errores
+error_checker = LexicalAnalyzerErrors(codigo)
+errores = error_checker.analyze()
+
+if errores:
+    print("Hay errores léxicos, revisa el archivo errores_lexicos.txt")
+else:
+    # ---- Análisis de tokens (si no hay errores)
+    tokens_checker = LexicalAnalyzerTokens(codigo)
+    tokens_checker.analyze()
+    print("No hay errores, tokens guardados en tokens_lista.csv")
 """

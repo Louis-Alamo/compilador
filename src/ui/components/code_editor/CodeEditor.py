@@ -42,8 +42,23 @@ class CodeEditor(QWidget):
     def run_lexer(self):
         codigo = self.get_text()
         analizador = LexicalAnalyzer(codigo)
-        errores = analizador.analyze()
+        analizador.analyze()
+        errores = self.leer_errores_txt("errores_lexicos.txt")
         self.highlighter.set_errors(errores)  # Red underline in highlighter
+
+
+    def leer_errores_txt(self,filename="errores_lexicos.txt"):
+        errores = []
+        with open(filename, encoding="utf-8") as f:
+            lineas = f.readlines()
+            if any("¡No se encontraron errores léxicos!" in linea for linea in lineas):
+                return []
+            for linea in lineas:
+                linea = linea.strip()
+                if linea:  # evita líneas vacías
+                    errores.append(linea)
+        return errores
+
 
     def set_highlight_rules(self, rule_definitions: dict):
         self.highlighter.set_rules(rule_definitions)

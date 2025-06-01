@@ -6,8 +6,11 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QMenuBar, QMenu,
                              QSplitter, QFileDialog, QMessageBox, QHBoxLayout)
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
+
+from .components.TablaTokens import TablaTokensDialog
 from .components.code_editor.CodeEditor import CodeEditor
 from .components.FileExplorer import FileExplorer
+from src.compiler.lexer.LexicalAnalizer import LexicalAnalyzer
 
 
 class EditorApp:
@@ -378,6 +381,16 @@ inicio"""
         main_window.show()
         sys.exit(app.exec())
 
+    def mostrar_tabla_de_tokens(self):
+
+        dialog = TablaTokensDialog(
+            csv_file_path="../compiler/lexer/tokens_lista.csv",
+            title="Tokens del Lexer"
+        )
+
+        # Conectar señal personalizada (opcional)
+        dialog.tokenSeleccionado.connect(lambda token, tipo: print(f"Token seleccionado: {token} ({tipo})"))
+
     def abrir_carpeta(self):
         """Abre el diálogo para seleccionar una carpeta en el explorador"""
         if self.file_explorer:
@@ -482,15 +495,25 @@ inicio"""
             QMessageBox.critical(None, "Error", f"No se pudo guardar el archivo:\n{str(e)}")
 
     def ejecutar_analisis(self, tipo_analisis):
-        """Ejecuta el análisis seleccionado y actualiza la pestaña correspondiente"""
         self.current_analysis = tipo_analisis
         print(f"Ejecutando análisis: {tipo_analisis}")
 
         if tipo_analisis == "Léxico":
-            # Simular análisis léxico
+            analizador = LexicalAnalyzer(self.editor_widget.get_text())
+            print(self.editor_widget.get_text())
+            resultado = analizador.analyze()
 
-            self.lexico_tab.setPlainText("ANÁLISIS LÉXICO COMPLETADO\n\n")
-            self.tab_widget.setCurrentIndex(0)  # Cambiar a pestaña léxico
+            if resultado:
+                self.lexico_tab.setPlainText("Errores encontrados\n\n")
+                with open("../compiler/errores_lexicos.txt", encoding="utf-8") as f:
+                    for linea in f:
+                        self.lexico_tab.append(linea.rstrip())
+            else:
+                self.lexico_tab.setPlainText("ANÁLISIS LÉXICO COMPLETADO\n\n")
+                self.mostrar_tabla_de_tokens()
+                self.lexico_tab.append("No se encontraron errores léxicos.")
+
+            self.tab_widget.setCurrentIndex(0)
 
         elif tipo_analisis == "Sintáctico":
             # Simular análisis sintáctico

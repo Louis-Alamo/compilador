@@ -23,8 +23,8 @@ class LexicalAnalyzer:
 
     def analyze(self):
         # Primero: analizar errores léxicos
-        error_checker = LexicalAnalyzerErrors(self.code)
-        errores = error_checker.analyze()
+        self.error_checker = LexicalAnalyzerErrors(self.code)
+        errores = self.error_checker.analyze()
         self.errors = errores
 
         if errores:  # Si hay errores, retorna True y no analiza tokens
@@ -32,13 +32,28 @@ class LexicalAnalyzer:
             return True
         else:
             # Si NO hay errores, analizar tokens
-            tokens_checker = LexicalAnalyzerTokens(self.code)
-            tokens_checker.analyze()
-            self.tokens = tokens_checker.tokens_rows
+            self.tokens_checker = LexicalAnalyzerTokens(self.code)
+            self.tokens_checker.analyze()
+            self.tokens = self.tokens_checker.tokens_rows
             self.has_errors = False
             return False
 
+    def obtener_tokens(self):
+        if self.has_errors:
+            return []
+        return self.tokens_checker.get_grouped_tokens()
+
+    def obtener_errores(self):
+        if not self.has_errors:
+            return []
+        return self.error_checker.get_grouped_errors()
+
+import re
+
 class LexicalAnalyzerTokens:
+    # Variable de clase, se comparte por todas las instancias (opcional: puedes ponerla en self si quieres solo para cada objeto)
+    tokens_grouped = []
+
     def __init__(self, code):
         self.code_lines = [line.rstrip() for line in code.strip().split('\n')]
         self.errors = []
@@ -122,38 +137,8 @@ class LexicalAnalyzerTokens:
                     cursor = match.end()
                 else:
                     cursor += 1
-        self.save_tokens_csv()
-        return self.errors
 
-    def save_tokens_csv(self, filename="tokens_lista.csv"):
-        agrupados = {}
-        for token, tipo, declara, _ in self.tokens_rows:
-            key = (token, tipo)
-            if key not in agrupados:
-                agrupados[key] = {"declara": declara, "referencia": set()}
-            else:
-                if declara < agrupados[key]["declara"]:
-                    agrupados[key]["referencia"].add(agrupados[key]["declara"])
-                    agrupados[key]["declara"] = declara
-                else:
-                    agrupados[key]["referencia"].add(declara)
-        with open(filename, "w", newline='', encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Token", "Tipo", "Declara", "Repite"])
-            for (token, tipo), info in agrupados.items():
-                repite = ", ".join(str(x) for x in sorted(info["referencia"])) if info["referencia"] else ""
-                writer.writerow([token, tipo, info["declara"], repite])
-
-    def save_errors_txt(self, filename="errores_lexicos.txt"):
-        with open(filename, "w", encoding="utf-8") as f:
-            if not self.errors:
-                f.write("¡No se encontraron errores léxicos!\n")
-            else:
-                for err in self.errors:
-                    f.write(f"Línea {err['line']}: {err['error']}\n")
-
-    def show_tokens_table(self):
-        # Agrupa igual que para el CSV
+        # Agrupa igual que para el CSV, pero solo en memoria
         agrupados = {}
         for token, tipo, declara, _ in self.tokens_rows:
             key = (token, tipo)
@@ -169,38 +154,34 @@ class LexicalAnalyzerTokens:
         for (token, tipo), info in agrupados.items():
             repite = ", ".join(str(x) for x in sorted(info["referencia"])) if info["referencia"] else ""
             data.append([token, tipo, info["declara"], repite])
-
-        # Ordenar por la línea de declaración
+        # Ordenar por línea de declaración
         data.sort(key=lambda x: x[2])
+        LexicalAnalyzerTokens.tokens_grouped = data  # Se guarda en la variable de clase
 
-        root = tk.Tk()
-        root.title("Tabla de Tokens (Agrupados)")
-        root.geometry("600x400")
-        frame = ttk.Frame(root)
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
+        return self.errors
 
-        cols = ("Token", "Tipo", "Declara", "Repite")
-        tree = ttk.Treeview(frame, columns=cols, show="headings")
-        for c in cols:
-            tree.heading(c, text=c)
-            tree.column(c, width=130)
+    @classmethod
+    def get_grouped_tokens(cls):
+        """Devuelve la tabla de tokens agrupados (en memoria, siempre actualizada)"""
+        return cls.tokens_grouped
 
-        for row in data:
-            tree.insert("", "end", values=row)
+    def show_tokens_table(self):
+        # Puedes usar la variable de clase
+        data = self.get_grouped_tokens()
+        if not data:
+            print("No hay datos para mostrar")
+            return
 
-        scrollbar_v = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
-        scrollbar_h = ttk.Scrollbar(frame, orient="horizontal", command=tree.xview)
-        tree.configure(yscrollcommand=scrollbar_v.set, xscrollcommand=scrollbar_h.set)
-
-        tree.pack(side="left", fill="both", expand=True)
-        scrollbar_v.pack(side="right", fill="y")
-        scrollbar_h.pack(side="bottom", fill="x")
-
-        root.mainloop()
+        # Aquí lo mismo que hacías antes para mostrar con Tkinter si quieres...
+        # O puedes solo retornar data y mostrarlo en tu GUI PyQt o lo que sea
 
 
+
+import re
 
 class LexicalAnalyzerErrors:
+    errores_agrupados = []  # Variable de clase para los errores léxicos
+
     def __init__(self, code):
         self.code_lines = [line.strip() for line in code.strip().split('\n')]
         self.errors = []
@@ -298,8 +279,19 @@ class LexicalAnalyzerErrors:
         self.check_no_extra_fin_inicio()
         self.check_reserved_words()
         self.check_identifiers_and_numbers()
-        self.save_errors_txt()
+        # Agrega los errores actuales a la variable de clase
+        LexicalAnalyzerErrors.errores_agrupados = list(self.errors)
         return self.errors
+
+    @classmethod
+    def get_grouped_errors(cls):
+        """
+        Devuelve una lista de mensajes de error formateados, solo el texto.
+        Ejemplo: ["Línea 2: Token inválido '1palabra'.", ...]
+        """
+
+        print(f"Errores agrupados: {cls.errores_agrupados}")
+        return [f"Línea {err['line']}: {err['error']}" for err in cls.errores_agrupados]
 
     def save_errors_txt(self, filename="errores_lexicos.txt"):
         with open(filename, "w", encoding="utf-8") as f:
@@ -311,30 +303,3 @@ class LexicalAnalyzerErrors:
 
 
 
-"""
-codigo = """
-"""
-fin
-    1palabra .nombre = 12.1;
-    1palabra x = 1A;
-    palabra y = 3.f4;
-    ocultar ("hola mundo", nombre);
-    # esto es comentario #
-    nombre = Anombre + x;
-    nombre = nombre + y;
-    x = x + 1;
-inicio
-"""
-"""
-# ---- Análisis de errores
-error_checker = LexicalAnalyzerErrors(codigo)
-errores = error_checker.analyze()
-
-if errores:
-    print("Hay errores léxicos, revisa el archivo errores_lexicos.txt")
-else:
-    # ---- Análisis de tokens (si no hay errores)
-    tokens_checker = LexicalAnalyzerTokens(codigo)
-    tokens_checker.analyze()
-    print("No hay errores, tokens guardados en tokens_lista.csv")
-"""

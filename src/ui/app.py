@@ -381,15 +381,16 @@ inicio"""
         main_window.show()
         sys.exit(app.exec())
 
-    def mostrar_tabla_de_tokens(self):
-
+    def mostrar_tabla_de_tokens(self, lista_tokens):
+        print(lista_tokens)
         dialog = TablaTokensDialog(
-            csv_file_path="../compiler/lexer/tokens_lista.csv",
-            title="Tokens del Lexer"
+            tokens_data=lista_tokens,
+            title="Tabla de Tokens"
         )
 
         # Conectar señal personalizada (opcional)
         dialog.tokenSeleccionado.connect(lambda token, tipo: print(f"Token seleccionado: {token} ({tipo})"))
+        dialog.exec() #<-- No eliminar o vale madre todo el dialog
 
     def abrir_carpeta(self):
         """Abre el diálogo para seleccionar una carpeta en el explorador"""
@@ -500,17 +501,20 @@ inicio"""
 
         if tipo_analisis == "Léxico":
             analizador = LexicalAnalyzer(self.editor_widget.get_text())
-            print(self.editor_widget.get_text())
             resultado = analizador.analyze()
 
             if resultado:
                 self.lexico_tab.setPlainText("Errores encontrados\n\n")
-                with open("../compiler/errores_lexicos.txt", encoding="utf-8") as f:
-                    for linea in f:
-                        self.lexico_tab.append(linea.rstrip())
+                lista_errores = analizador.obtener_errores()
+                print(lista_errores)
+
+                for error in lista_errores:
+                    self.lexico_tab.append(error)
+
             else:
                 self.lexico_tab.setPlainText("ANÁLISIS LÉXICO COMPLETADO\n\n")
-                self.mostrar_tabla_de_tokens()
+                lista_tokens = analizador.obtener_tokens()
+                self.mostrar_tabla_de_tokens(lista_tokens)
                 self.lexico_tab.append("No se encontraron errores léxicos.")
 
             self.tab_widget.setCurrentIndex(0)

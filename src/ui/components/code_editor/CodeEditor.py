@@ -43,7 +43,7 @@ class CodeEditor(QWidget):
         codigo = self.get_text()
         analizador = LexicalAnalyzer(codigo)
         analizador.analyze()
-        errores = self.leer_errores_txt("errores_lexicos.txt")
+        errores = analizador.obtener_errores()
         self.highlighter.set_errors(errores)  # Red underline in highlighter
 
 

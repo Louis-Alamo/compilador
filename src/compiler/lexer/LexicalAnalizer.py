@@ -290,7 +290,6 @@ class LexicalAnalyzerErrors:
         Ejemplo: ["Línea 2: Token inválido '1palabra'.", ...]
         """
 
-        print(f"Errores agrupados: {cls.errores_agrupados}")
         return [f"Línea {err['line']}: {err['error']}" for err in cls.errores_agrupados]
 
     def save_errors_txt(self, filename="errores_lexicos.txt"):

@@ -312,9 +312,10 @@ class LexicalAnalizerForMy:
         ]
         self.CONSTANTES_ESPECIALES = ["verdadero", "falso"]
         self.OPERADORES_ARITMETICOS = ["=", "+", "-", "*", "/"]
+        self.DELIMITADORES = [",", ";", "(", ")", '"', ".", "#"]
 
 
-        self.DELIMITADORES = [",", ";", "(", ")", "[", "]", "{", "}", '"']
+        
 
         # Declarar aquí los regex como variables de instancia:
         self.regex_cadena = re.compile(r'"[^"]*"')
@@ -328,13 +329,18 @@ class LexicalAnalizerForMy:
 
     #===================== ZONA DE ANALISIS =========================
     def analizar_codigo(self):
+
+        # Primero: limpiar el código de espacios y saltos de línea innecesarios
         lista_tokens = self.destructurar_codigo_en_tokens(self.codigo)
         lista_tokens = self.limpiar_comentarios_linea(lista_tokens)
         lista_tokens = self.limpiar_cadenas(lista_tokens)
-        self.analizar_lineas_de_tokens(lista_tokens)
-        self.verificar_inicio_fin(self.tokens_clasificados)
-        self.buscar_operadores_invalidos(self.tokens_clasificados)
-        self.validar_numeros()   # <-- Agrégalo aquí
+
+        # Luego: analizar los tokens aqui ya cambia la estructura a una tupla (linea, token, tipo) despues de la clasificación
+        self.analizar_lineas_de_tokens(lista_tokens)                # <-- Analiza los tokens y los clasifica
+        self.verificar_inicio_fin(self.tokens_clasificados)         # <-- Verifica que el código comience con 'fin' y termine con 'inicio'
+        self.buscar_operadores_invalidos(self.tokens_clasificados)  # <-- Busca secuencias de operadores inválidos como '++', '--', etc.
+        self.buscar_delimitadores_invalidos(self.tokens_clasificados)  # <-- Busca secuencias de delimitadores inválidos como ';;', '()', etc.
+        self.analizar_tokens_invalidos(self.tokens_clasificados)    # <-- Analiza los tokens inválidos y genera errores léxicos
 
 
 
@@ -350,18 +356,23 @@ class LexicalAnalizerForMy:
     def destructurar_codigo_en_tokens(self, codigo):
         lineas = codigo.split('\n')
         resultado = []
-        # Delimitadores clásicos
-        delimitadores = ',;:()[]{}+-*/=<>!?#%&|@^~"'
-
         # Regex:
         # 1. Palabra o número (letras, dígitos, guión bajo)
         # 2. Espacio
         # 3. Cualquier delimitador (individual)
         patron = re.compile(
-            r'([a-zA-Z0-9_][\w]*)'            # palabra/variable/identificador
-            r'|(\s)'                       # espacio
-            r'|([' + re.escape(delimitadores) + r'])'   # delimitador como token separado
+            r'\d+\.[a-zA-Z_][a-zA-Z0-9_]*'           # <-- palabras que incluyan un punto (ej: 3.14hola, 8.9mundo)
+            r'|\d+[a-zA-Z_][a-zA-Z0-9_]*'            # <-- palabras que incluyan un número (ej: 8hola, 3hola)
+            r'|\d+(\.\d+){2,}'                       # <-- número con más de un punto (ej: 3.14.15, 8.9.10)   
+            r'|\d+\.\d+'                             # <-- decimal válido (3.14)
+            r'|\d+\.'                                # <-- decimal incompleto (8.)
+            r'|[a-zA-Z_][a-zA-Z0-9_]*'               # <-- identificador válido
+            r'|\d+'                                  # <-- entero válido
+            r'|(["])'                                # <-- cadena entre comillas (ej: "hola mundo")
+            r'|([,.;:(){}\[\]\+\-\*/=<>!?#%&|@^~])'  # <-- delimitadores clásicos
+            r'|(\s)'                                 # <-- espacio en blanco (para ignorar)
         )
+
 
         for linea in lineas:
             tokens = []
@@ -374,23 +385,12 @@ class LexicalAnalizerForMy:
 
     def analizar_lineas_de_tokens(self, lista_token):
         self.tokens_clasificados = []
+
+
         for idx_linea, linea in enumerate(lista_token, start=1):
             for token in linea:
                 tipo = self.clasificar_token(token)
                 self.tokens_clasificados.append((idx_linea, token, tipo))
-                if tipo == "INVALIDO":
-                    sugerido = self.sugerencia_token(token)
-                    if sugerido:
-                        mensaje = (f"Error línea {idx_linea}: Syntax error, token inválido '{token}'."
-                                f"  Sugerencia: ¿Quisiste decir --> '{sugerido}'?")
-                    else:
-                        mensaje = (f"Error línea {idx_linea}: Syntax error, token inválido '{token}'."
-                                f"  No se encontró sugerencia para este token.")
-                    self.errores_lexicos.append({
-                        "linea": idx_linea,
-                        "token": token,
-                        "mensaje": mensaje
-                    })
         return self.tokens_clasificados
 
     def get_errores_lexicos(self):
@@ -403,7 +403,7 @@ class LexicalAnalizerForMy:
             return "CONSTANTE"
         if token in self.OPERADORES_ARITMETICOS:
             return "OPERADOR"
-        if token in self.DELIMITADORES:
+        if re.fullmatch(r'[,.;:(){}\[\]\+\-\*/=<>!?#%&|@^~]', token):
             return "DELIMITADOR"
         if self.regex_cadena.fullmatch(token):
             return "CADENA"
@@ -452,7 +452,19 @@ class LexicalAnalizerForMy:
             resultado.append(nueva_linea)
         return resultado
 
-
+    def analizar_tokens_invalidos(self, tokens_clasificados):
+        """
+        Recorre los tokens, detecta los 'INVALIDO', categoriza el error
+        y lo agrega a self.errores_lexicos.
+        """
+        for linea, token, tipo in tokens_clasificados:
+            if tipo == "INVALIDO":
+                categoria = self.categorizar_error_lexico(token)
+                self.errores_lexicos.append({
+                    "linea": linea,
+                    "token": token,
+                    "mensaje": f"Error: {categoria}."
+                })
 
     #==================VERIFICACION DE ERRORES ====================
     def verificar_inicio_fin(self, tokens_clasificados):
@@ -547,43 +559,56 @@ class LexicalAnalizerForMy:
                 else:
                     idx += 1
 
+    def buscar_delimitadores_invalidos(self, tokens_clasificados):
+        # Agrupa los tokens por línea
+        lineas = {}
+        for linea, token, tipo in tokens_clasificados:
+            if linea not in lineas:
+                lineas[linea] = []
+            lineas[linea].append((token, tipo))
 
-    def validar_numeros(self):
-        for idx, (num_linea, token, tipo) in enumerate(self.tokens_clasificados):
-            if tipo == "NUMERO":
-                # Verificar decimal válido: solo un punto, dígitos antes y después del punto
-                if '.' in token:
-                    partes = token.split('.')
-                    # Si hay más de un punto o no hay dígitos antes/después, es inválido
-                    if len(partes) != 2 or not partes[0].isdigit() or not partes[1].isdigit():
+        for num_linea, tokens_tipos in lineas.items():
+            for token, tipo in tokens_tipos:
+                if tipo == "DELIMITADOR":
+                    if token not in self.DELIMITADORES:
                         self.errores_lexicos.append({
                             "linea": num_linea,
                             "token": token,
-                            "mensaje": f"Error de número decimal inválido: '{token}'. Formato esperado: dígitos.punto.dígitos (ej. 3.14)"
-                        })
-                else:
-                    # Si no es decimal, debe ser entero válido (solo dígitos)
-                    if not token.isdigit():
-                        self.errores_lexicos.append({
-                            "linea": num_linea,
-                            "token": token,
-                            "mensaje": f"Error de número entero inválido: '{token}'. Debe contener solo dígitos (ej. 123)"
+                            "mensaje": f"Carácter delimitador no válido '{token}'."
                         })
 
-
-
-
+    def categorizar_error_lexico(self, token):
+        patrones = [
+            (r'^\d+[a-zA-Z_][a-zA-Z0-9_]*$', "Identificador no puede comenzar con número"),
+            (r'^\d+(\.\d+){2,}$', "Número decimal con múltiples puntos"),
+            (r'^\d+\.$', "Decimal incompleto, falta la parte decimal"),
+            (r'^\d+\.[a-zA-Z_][a-zA-Z0-9_]*$', "Decimal con letras después del punto"),
+            (r'^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]+$', "Identificador con caracteres ilegales"),
+            (r'.', "Token no reconocido"),
+        ]
+        for patron, categoria in patrones:
+            if re.fullmatch(patron, token):
+                return categoria
+        return "Error léxico desconocido"
 
 # Ejemplo de uso
 codigo = '''fin
-ocultar("Hola mundo", variable);
+palabra1 = 5
 inicio'''
 
 analizador = LexicalAnalizerForMy(codigo)
 analizador.analizar_codigo()  # Esto ya ejecuta todo el flujo
 
+
 for t in analizador.tokens_clasificados:
     print(t)
+
+# Supón que tienes la lista lista_de_tokens:
+# lista_de_tokens = analizador.tokens_clasificados
+
+# Llama a la función para mostrar la tabla:
+#mostrar_tabla_tokens(analizador.tokens_clasificados)
+
 
 for err in analizador.get_errores_lexicos():
     print(f"Línea {err['linea']}: {err['mensaje']} '{err['token']}'")

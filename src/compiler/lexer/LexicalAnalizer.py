@@ -2,6 +2,8 @@ import re
 import tkinter as tk
 from tkinter import ttk
 import csv
+import difflib
+from itertools import groupby
 
 
 class LexicalAnalyzer:
@@ -176,9 +178,6 @@ class LexicalAnalyzerTokens:
         # O puedes solo retornar data y mostrarlo en tu GUI PyQt o lo que sea
 
 
-
-import re
-
 class LexicalAnalyzerErrors:
     errores_agrupados = []  # Variable de clase para los errores léxicos
 
@@ -302,3 +301,289 @@ class LexicalAnalyzerErrors:
 
 
 
+
+class LexicalAnalizerForMy:
+    def __init__(self, codigo: str):
+        self.codigo = codigo
+
+        self.PALABRAS_RESERVADAS = [
+            "fin", "inicio", "palabra", "entero", "numero", "quiza",
+            "ocultar", "borrar", "AND", "OR", "NOT"
+        ]
+        self.CONSTANTES_ESPECIALES = ["verdadero", "falso"]
+        self.OPERADORES_ARITMETICOS = ["=", "+", "-", "*", "/"]
+
+
+        self.DELIMITADORES = [",", ";", "(", ")", "[", "]", "{", "}", '"']
+
+        # Declarar aquí los regex como variables de instancia:
+        self.regex_cadena = re.compile(r'"[^"]*"')
+        self.regex_numero = re.compile(r'\d+\.\d+|\d+')
+        self.regex_identificador = re.compile(r'[a-z][a-z0-9_]*')
+
+        # Lista de errores léxicos
+        self.errores_lexicos = []  
+
+
+
+    #===================== ZONA DE ANALISIS =========================
+    def analizar_codigo(self):
+        lista_tokens = self.destructurar_codigo_en_tokens(self.codigo)
+        lista_tokens = self.limpiar_comentarios_linea(lista_tokens)
+        lista_tokens = self.limpiar_cadenas(lista_tokens)
+        self.analizar_lineas_de_tokens(lista_tokens)
+        self.verificar_inicio_fin(self.tokens_clasificados)
+        self.buscar_operadores_invalidos(self.tokens_clasificados)
+        self.validar_numeros()   # <-- Agrégalo aquí
+
+
+
+        if self.errores_lexicos:
+            print(f"Se encontraron {len(self.errores_lexicos)} errores de lexer...")
+
+
+        else:
+            print(f'No se han encontrado errores de lexer...')
+        return lista_tokens
+
+    #==================PROCESAMIENTO DE TOKENS Y LISTAS===================
+    def destructurar_codigo_en_tokens(self, codigo):
+        lineas = codigo.split('\n')
+        resultado = []
+        # Delimitadores clásicos
+        delimitadores = ',;:()[]{}+-*/=<>!?#%&|@^~"'
+
+        # Regex:
+        # 1. Palabra o número (letras, dígitos, guión bajo)
+        # 2. Espacio
+        # 3. Cualquier delimitador (individual)
+        patron = re.compile(
+            r'([a-zA-Z0-9_][\w]*)'            # palabra/variable/identificador
+            r'|(\s)'                       # espacio
+            r'|([' + re.escape(delimitadores) + r'])'   # delimitador como token separado
+        )
+
+        for linea in lineas:
+            tokens = []
+            for match in patron.finditer(linea):
+                token = match.group(0)
+                tokens.append(token)
+            resultado.append(tokens)
+
+        return resultado
+
+    def analizar_lineas_de_tokens(self, lista_token):
+        self.tokens_clasificados = []
+        for idx_linea, linea in enumerate(lista_token, start=1):
+            for token in linea:
+                tipo = self.clasificar_token(token)
+                self.tokens_clasificados.append((idx_linea, token, tipo))
+                if tipo == "INVALIDO":
+                    sugerido = self.sugerencia_token(token)
+                    if sugerido:
+                        mensaje = (f"Error línea {idx_linea}: Syntax error, token inválido '{token}'."
+                                f"  Sugerencia: ¿Quisiste decir --> '{sugerido}'?")
+                    else:
+                        mensaje = (f"Error línea {idx_linea}: Syntax error, token inválido '{token}'."
+                                f"  No se encontró sugerencia para este token.")
+                    self.errores_lexicos.append({
+                        "linea": idx_linea,
+                        "token": token,
+                        "mensaje": mensaje
+                    })
+        return self.tokens_clasificados
+
+    def get_errores_lexicos(self):
+        return self.errores_lexicos
+
+    def clasificar_token(self, token):
+        if token in self.PALABRAS_RESERVADAS:
+            return "RESERVADA"
+        if token in self.CONSTANTES_ESPECIALES:
+            return "CONSTANTE"
+        if token in self.OPERADORES_ARITMETICOS:
+            return "OPERADOR"
+        if token in self.DELIMITADORES:
+            return "DELIMITADOR"
+        if self.regex_cadena.fullmatch(token):
+            return "CADENA"
+        if self.regex_numero.fullmatch(token):
+            return "NUMERO"
+        if self.regex_identificador.fullmatch(token) and token not in self.PALABRAS_RESERVADAS:
+            return "IDENTIFICADOR"
+        if token.strip() == "":
+            return "ESPACIO"
+        
+        return "INVALIDO"
+    
+    def limpiar_comentarios_linea(self, lista_de_listas):
+        resultado = []
+        for linea in lista_de_listas:
+            nueva_linea = []
+            for token in linea:
+                if token == '#':
+                    nueva_linea.append('#')  # Si quieres, conserva el símbolo de comentario como token
+                    break  # todo lo demás de la línea se ignora
+                else:
+                    nueva_linea.append(token)
+            resultado.append(nueva_linea)
+        return resultado
+    
+    def limpiar_cadenas(self, lista_de_listas):
+        resultado = []
+        for linea in lista_de_listas:
+            nueva_linea = []
+            idx = 0
+            while idx < len(linea):
+                token = linea[idx]
+                if token == '"':
+                    nueva_linea.append(token)  # Conserva la comilla de apertura
+                    idx += 1
+                    # Busca cierre en la misma línea
+                    while idx < len(linea) and linea[idx] != '"':
+                        idx += 1
+                    if idx < len(linea) and linea[idx] == '"':
+                        nueva_linea.append(linea[idx])  # Conserva la comilla de cierre
+                        idx += 1
+                    # Aquí NO debes hacer break, solo sigues procesando el resto de la línea
+                else:
+                    nueva_linea.append(token)
+                    idx += 1
+            resultado.append(nueva_linea)
+        return resultado
+
+
+
+    #==================VERIFICACION DE ERRORES ====================
+    def verificar_inicio_fin(self, tokens_clasificados):
+        # Encuentra la primera y última línea útiles (ignorando líneas vacías o solo espacios/comentarios)
+        lineas_utiles = {}
+        for num_linea, token, tipo in tokens_clasificados:
+            # Omite espacios y comentarios como únicos tokens en la línea
+            if tipo not in ("ESPACIO", "DELIMITADOR") or (token in ("fin", "inicio")):
+                if num_linea not in lineas_utiles:
+                    lineas_utiles[num_linea] = []
+                lineas_utiles[num_linea].append((token, tipo))
+
+        if not lineas_utiles:
+            # No hay líneas útiles, error léxico global
+            self.errores_lexicos.append({
+                "linea": 1,
+                "token": "",
+                "mensaje": "No se encontró ningún código útil"
+            })
+            return
+
+        lineas_ordenadas = sorted(lineas_utiles.keys())
+        primera_linea = lineas_ordenadas[0]
+        ultima_linea = lineas_ordenadas[-1]
+
+        tokens_primera = [t for t, tipo in lineas_utiles[primera_linea] if tipo != "ESPACIO"]
+        tokens_ultima = [t for t, tipo in lineas_utiles[ultima_linea] if tipo != "ESPACIO"]
+
+        if tokens_primera != ["fin"]:
+            self.errores_lexicos.append({
+                "linea": primera_linea,
+                "token": " ".join(tokens_primera),
+                "mensaje": "La primera línea útil debe ser solo 'fin' no -->"
+            })
+        if tokens_ultima != ["inicio"]:
+            self.errores_lexicos.append({
+                "linea": ultima_linea,
+                "token": " ".join(tokens_ultima),
+                "mensaje": "La última línea útil debe ser solo 'inicio' -->"
+            })
+
+    def sugerencia_token(self, token):
+        universo = (
+            self.PALABRAS_RESERVADAS +
+            self.CONSTANTES_ESPECIALES +
+            self.OPERADORES_ARITMETICOS 
+        )
+        sugeridas = difflib.get_close_matches(token, universo, n=1, cutoff=0.7)
+        return sugeridas[0] if sugeridas else None
+        
+    def buscar_operadores_invalidos(self, tokens_clasificados):
+
+        # Agrupa los tokens por línea
+        lineas = {}
+        for linea, token, tipo in tokens_clasificados:
+            if linea not in lineas:
+                lineas[linea] = []
+            lineas[linea].append((token, tipo))
+
+        # Recorre cada línea
+        for num_linea, tokens_tipos in lineas.items():
+            idx = 0
+            while idx < len(tokens_tipos):
+                token, tipo = tokens_tipos[idx]
+                # Si encuentro un operador, veo si le siguen más operadores
+                if tipo == "OPERADOR":
+                    secuencia = token
+                    j = idx + 1
+                    while j < len(tokens_tipos) and tokens_tipos[j][1] == "OPERADOR":
+                        secuencia += tokens_tipos[j][0]
+                        j += 1
+                    # Si la secuencia tiene más de un caracter y es inválida, reporta el error
+                    if len(secuencia) > 1 and secuencia not in self.OPERADORES_ARITMETICOS:
+                        sugerido = self.sugerencia_token(secuencia)
+                        if sugerido:
+                            mensaje = (
+                                f"Error línea {num_linea}: Secuencia de operadores inválida '{secuencia}'."
+                                f"  Sugerencia: ¿Quisiste decir --> '{sugerido}'?"
+                            )
+                        else:
+                            mensaje = (
+                                f"Error línea {num_linea}: Secuencia de operadores inválida '{secuencia}'."
+                                "  No se encontró sugerencia para esta secuencia."
+                            )
+                        self.errores_lexicos.append({
+                            "linea": num_linea,
+                            "token": secuencia,
+                            "mensaje": mensaje
+                        })
+                    # Avanza el índice
+                    idx = j
+                else:
+                    idx += 1
+
+
+    def validar_numeros(self):
+        for idx, (num_linea, token, tipo) in enumerate(self.tokens_clasificados):
+            if tipo == "NUMERO":
+                # Verificar decimal válido: solo un punto, dígitos antes y después del punto
+                if '.' in token:
+                    partes = token.split('.')
+                    # Si hay más de un punto o no hay dígitos antes/después, es inválido
+                    if len(partes) != 2 or not partes[0].isdigit() or not partes[1].isdigit():
+                        self.errores_lexicos.append({
+                            "linea": num_linea,
+                            "token": token,
+                            "mensaje": f"Error de número decimal inválido: '{token}'. Formato esperado: dígitos.punto.dígitos (ej. 3.14)"
+                        })
+                else:
+                    # Si no es decimal, debe ser entero válido (solo dígitos)
+                    if not token.isdigit():
+                        self.errores_lexicos.append({
+                            "linea": num_linea,
+                            "token": token,
+                            "mensaje": f"Error de número entero inválido: '{token}'. Debe contener solo dígitos (ej. 123)"
+                        })
+
+
+
+
+
+# Ejemplo de uso
+codigo = '''fin
+ocultar("Hola mundo", variable);
+inicio'''
+
+analizador = LexicalAnalizerForMy(codigo)
+analizador.analizar_codigo()  # Esto ya ejecuta todo el flujo
+
+for t in analizador.tokens_clasificados:
+    print(t)
+
+for err in analizador.get_errores_lexicos():
+    print(f"Línea {err['linea']}: {err['mensaje']} '{err['token']}'")

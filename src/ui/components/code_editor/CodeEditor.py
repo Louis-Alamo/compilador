@@ -3,7 +3,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 from .CustomHighlighter import CustomHighlighter
 from ..NumberBar import NumberBar
-from src.compiler.lexer.LexicalAnalizer import LexicalAnalyzer
+from src.compiler.lexer.LexicalAnalizer import LexicalAnalizerForMy
 
 
 class CodeEditor(QWidget):
@@ -41,9 +41,9 @@ class CodeEditor(QWidget):
 
     def run_lexer(self):
         codigo = self.get_text()
-        analizador = LexicalAnalyzer(codigo)
-        analizador.analyze()
-        errores = analizador.obtener_errores()
+        analizador = LexicalAnalizerForMy(codigo)
+        analizador.analizar_codigo()
+        errores = analizador.get_errores_lexicos()
         self.highlighter.set_errors(errores)  # Red underline in highlighter
 
 

@@ -10,7 +10,7 @@ from PyQt6.QtCore import Qt
 from .components.TablaTokens import TablaTokensDialog
 from .components.code_editor.CodeEditor import CodeEditor
 from .components.FileExplorer import FileExplorer
-from src.compiler.lexer.LexicalAnalizer import LexicalAnalyzer
+from src.compiler.lexer.LexicalAnalizer import LexicalAnalizerForMy
 
 
 class EditorApp:
@@ -80,7 +80,7 @@ class EditorApp:
             color: #212529;
             border: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 11px;
+            font-size: 14px;
             line-height: 1.4;
             padding: 15px;
         }
@@ -500,12 +500,12 @@ inicio"""
         print(f"Ejecutando análisis: {tipo_analisis}")
 
         if tipo_analisis == "Léxico":
-            analizador = LexicalAnalyzer(self.editor_widget.get_text())
-            resultado = analizador.analyze()
+            analizador = LexicalAnalizerForMy(self.editor_widget.get_text())
+            resultado = analizador.analizar_codigo()
 
             if resultado:
                 self.lexico_tab.setPlainText("Errores encontrados\n\n")
-                lista_errores = analizador.obtener_errores()
+                lista_errores = analizador.get_errores_lexicos()
                 print(lista_errores)
 
                 for error in lista_errores:
@@ -513,7 +513,7 @@ inicio"""
 
             else:
                 self.lexico_tab.setPlainText("ANÁLISIS LÉXICO COMPLETADO\n\n")
-                lista_tokens = analizador.obtener_tokens()
+                lista_tokens = analizador.get_tokens_clasificados()
                 self.mostrar_tabla_de_tokens(lista_tokens)
                 self.lexico_tab.append("No se encontraron errores léxicos.")
 

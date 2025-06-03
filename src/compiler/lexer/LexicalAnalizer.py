@@ -303,6 +303,15 @@ class LexicalAnalyzerErrors:
 
 
 class LexicalAnalizerForMy:
+
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            # Si no existe, crea la instancia normalmente
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self, codigo: str):
         self.codigo = codigo
 
@@ -325,8 +334,6 @@ class LexicalAnalizerForMy:
         # Lista de errores léxicos
         self.errores_lexicos = []  
 
-
-
     #===================== ZONA DE ANALISIS =========================
     def analizar_codigo(self):
 
@@ -346,11 +353,11 @@ class LexicalAnalizerForMy:
 
         if self.errores_lexicos:
             print(f"Se encontraron {len(self.errores_lexicos)} errores de lexer...")
-
+            return self.get_errores_lexicos()                            # <-- Retorna los errores léxicos encontrados
 
         else:
             print(f'No se han encontrado errores de lexer...')
-        return lista_tokens
+            return self.get_tokens_clasificados()                              # <-- Retorna los tokens clasificados si no hay errores léxicos
 
     #==================PROCESAMIENTO DE TOKENS Y LISTAS===================
     def destructurar_codigo_en_tokens(self, codigo):
@@ -394,7 +401,7 @@ class LexicalAnalizerForMy:
         return self.tokens_clasificados
 
     def get_errores_lexicos(self):
-        return self.errores_lexicos
+        return [f"Línea {err['linea']}: {err['mensaje']} '{err['token']}'" for err in self.errores_lexicos]
 
     def clasificar_token(self, token):
         if token in self.PALABRAS_RESERVADAS:
@@ -591,24 +598,33 @@ class LexicalAnalizerForMy:
                 return categoria
         return "Error léxico desconocido"
 
-# Ejemplo de uso
-codigo = '''fin
-palabra1 = 5
-inicio'''
 
-analizador = LexicalAnalizerForMy(codigo)
-analizador.analizar_codigo()  # Esto ya ejecuta todo el flujo
+    #================== METODOS GET ===================
+    def get_errores_lexicos(self):
+        return [f"Línea {err['linea']}: {err['mensaje']} '{err['token']}'" for err in self.errores_lexicos]
+    
+    def get_tokens_clasificados(self):
+        """
+        Devuelve los tokens clasificados en una lista de tuplas (linea, token, tipo).
+        """
+        return self.agrupar_tokens(self.tokens_clasificados)
 
+    #================== UTILS ===================
+    def agrupar_tokens(self, tokens_clasificados):
+        """
+        Recibe una lista de tuplas (linea, token, tipo)
+        Devuelve una lista de tuplas (token, tipo, primera_linea, [otras_lineas])
+        """
+        agrupados = {}
+        for linea, token, tipo in tokens_clasificados:
+            clave = (token, tipo)
+            if clave in agrupados:
+                agrupados[clave]['otras_lineas'].append(linea)
+            else:
+                agrupados[clave] = {'primera_linea': linea, 'otras_lineas': []}
+        
+        resultado = []
+        for (token, tipo), info in agrupados.items():
+            resultado.append((token, tipo, info['primera_linea'], info['otras_lineas']))
+        return resultado
 
-for t in analizador.tokens_clasificados:
-    print(t)
-
-# Supón que tienes la lista lista_de_tokens:
-# lista_de_tokens = analizador.tokens_clasificados
-
-# Llama a la función para mostrar la tabla:
-#mostrar_tabla_tokens(analizador.tokens_clasificados)
-
-
-for err in analizador.get_errores_lexicos():
-    print(f"Línea {err['linea']}: {err['mensaje']} '{err['token']}'")

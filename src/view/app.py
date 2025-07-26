@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt
 from .components.TablaTokens import TablaTokensDialog
 from src.view.components.CodeEditor import CodeEditor
 from .components.FileExplorer import FileExplorer
-from src.compiler.lexer.LexicalAnalizer import LexicalAnalizerForMy
+from src.compiler.LexicalAnalizer import LexicalAnalizerForMy
 
 
 class EditorApp:

@@ -39,6 +39,7 @@ class LexicalAnalizerForMy:
 
         # Primero: limpiar el código de espacios y saltos de línea innecesarios
         lista_tokens = self.destructurar_codigo_en_tokens(self.codigo)
+        print(f"Tokens iniciales: {lista_tokens}")  # <-- Para depuración, muestra los tokens iniciales
         lista_tokens = self.limpiar_comentarios_linea(lista_tokens)
         lista_tokens = self.limpiar_cadenas(lista_tokens)
 

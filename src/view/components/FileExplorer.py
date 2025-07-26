@@ -1,4 +1,4 @@
-# ui/components/file_explorer/FileExplorer.py
+# view/components/file_explorer/FileExplorer.py
 import os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
                              QHBoxLayout, QPushButton, QLabel, QFileDialog,

@@ -1,14 +1,13 @@
-# ui/app.py
+# view/app.py
 import os
 import sys
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QMenuBar, QMenu,
-                             QVBoxLayout, QWidget, QTabWidget, QTextEdit,
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, QTabWidget, QTextEdit,
                              QSplitter, QFileDialog, QMessageBox, QHBoxLayout)
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
 
 from .components.TablaTokens import TablaTokensDialog
-from .components.code_editor.CodeEditor import CodeEditor
+from src.view.components.CodeEditor import CodeEditor
 from .components.FileExplorer import FileExplorer
 from src.compiler.lexer.LexicalAnalizer import LexicalAnalizerForMy
 

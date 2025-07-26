@@ -152,6 +152,7 @@ class LexicalAnalizerForMy:
                     idx += 1
             resultado.append(nueva_linea)
         return resultado
+
     def analizar_tokens_invalidos(self, tokens_clasificados):
         """
         Recorre los tokens, detecta los 'INVALIDO', categoriza el error

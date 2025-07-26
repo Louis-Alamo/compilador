@@ -1,4 +1,4 @@
-from ui.app import EditorApp
+from view.app import EditorApp
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
-from PyQt6.QtWidgets import QWidget, QPlainTextEdit, QHBoxLayout
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QFont
-from .CustomHighlighter import CustomHighlighter
-from ..NumberBar import NumberBar
+from PyQt6.QtWidgets import QWidget, QPlainTextEdit, QHBoxLayout
 from src.compiler.lexer.LexicalAnalizer import LexicalAnalizerForMy
+from src.view.components.CustomHighlighter import CustomHighlighter
+from src.view.components.NumberBar import NumberBar
 
 
 class CodeEditor(QWidget):

@@ -4,33 +4,34 @@ from typing import List
 class Tokenizador:
 
     @staticmethod
-    def obtener_tokens_del_codigo(codigo: str, patrones: List[str]) -> List[List[str]]:
+    def obtener_tokens_del_codigo(codigo: str, patrones: List[str]) -> List[str]:
         """
-        Divide el código en líneas y aplica los patrones para extraer tokens por línea.
+        Extrae todos los tokens de un código fuente dado, utilizando expresiones regulares.
 
         Args:
-            codigo (str): Código fuente como string.
-            patrones (List[str]): Lista de patrones regex como strings.
+            codigo (str): Código fuente como un string. Puede contener saltos de línea.
+            patrones (List[str]): Lista de patrones regex como strings para identificar diferentes tipos de tokens.
 
         Returns:
-            List[List[str]]: Lista de listas de tokens por línea.
+            List[str]: Lista plana de tokens extraídos en el orden en que aparecen.
 
         Example:
-            patrones = [r'\d+\.[a-zA-Z_][a-zA-Z0-9_]*', r'\d+[a-zA-Z_][a-zA-Z0-9_]*']
+            >>> codigo = "inicio x = 3.14; fin"
+            >>> patrones = [
+            ...     r'\\d+\\.\\d+',           # decimal
+            ...     r'[a-zA-Z_][a-zA-Z0-9_]*',# identificadores
+            ...     r'[,.;:(){}\\[\\]+\\-*/=<>!?#%&|@^~]', # delimitadores
+            ...     r'\\d+',                  # enteros
+            ... ]
+            >>> Tokenizador.obtener_tokens_del_codigo(codigo, patrones)
+            ['inicio', 'x', '=', '3.14', ';', 'fin']
         """
-        lineas = codigo.split('\n')
-        resultado = []
-
-        # Combinar todos los patrones en uno solo con OR |
         patron_completo = re.compile('|'.join(patrones))
+        tokens = []
 
-        for linea in lineas:
-            tokens = []
-            for match in patron_completo.finditer(linea):
-                token = match.group(0)
-                if not token.isspace():  # Ignora espacios en blanco
-                    tokens.append(token)
-            resultado.append(tokens)
+        for match in patron_completo.finditer(codigo):
+            token = match.group(0)
+            if not token.isspace():  # Ignora espacios
+                tokens.append(token)
 
-        return resultado
-
+        return tokens

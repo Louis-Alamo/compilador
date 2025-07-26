@@ -19,16 +19,80 @@ class AnalizadorSintactico:
 
 
         self.estado_parseo = EstadoParseo()
-        self.lista_tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones)
-        print(self.lista_tokens)
-        print(self.estado_parseo.get_informacion_estado())
+        #self.lista_tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones) #<- Es la cadena a analizar
+        self.lista_tokens = ['inicio'] #<- es solo para pruebas, se debe eliminar
 
+        self.iniciar_analisis(self.lista_tokens)
 
     def iniciar_analisis(self, lista_tokens):
 
+        while True:
+            if not lista_tokens:
+                break
+
+            estado_actual = self.estado_parseo.get_estado()
+
+            if self.estado_parseo.get_elemento_sentencia_actual() == "#":
+                break
+
+            if estado_actual == "t":
+                break
+
+            elif estado_actual == "n":
+                self.estado_parseo.set_estado_("n")
+                self.seleccionar_regla_con_n()
+
+            elif estado_actual == "r":
+                self.seleccionar_regla_con_r()
+
+            else:
+                print(f"Estado desconocido: {estado_actual}")
+                break
+
+
+        print(self.estado_parseo.get_historial())
+
+
+    def seleccionar_regla_con_n(self):
+
+
+        if self.estado_parseo.get_elemento_sentencia_actual() == self.lista_tokens[self.estado_parseo.get_indice()]:
+            self.concordancia_de_un_simbolo()
+
+    def seleccionar_regla_con_r(self):
         pass
 
+
     def expansion_del_arbol(self, lista_tokens):
+        pass
+
+    def concordancia_de_un_simbolo(self):
+
+
+        self.estado_parseo.agregar_token_a_sentencia_analizada(self.lista_tokens[self.estado_parseo.get_indice()])
+        self.estado_parseo.eliminar_token_a_sentencia_actual()
+
+
+        self.estado_parseo.incrementar_indice() # <-Funciona
+        self.estado_parseo.agregar_historial("2. Concordancia de un símbolo") # <-Funciona
+
+
+    def terminacion_con_exito(self):
+        pass
+
+    def no_concordancia_de_un_simbolo(self):
+        pass
+
+    def retroceso_a_la_entrada(self):
+        pass
+
+    def sigueinte_alternativa_a(self):
+        pass
+
+    def sigueinte_alternativa_b(self):
+        pass
+
+    def siguiente_alternativa_c(self):
         pass
 
 

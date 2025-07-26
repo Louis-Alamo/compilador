@@ -1,4 +1,4 @@
-
+import copy
 
 class EstadoParseo:
 
@@ -10,15 +10,16 @@ class EstadoParseo:
         self.estado = "n"
         self.indice = 0
         self.sentencia_analizada = []
-        self.sentencia_actual = ['inicio', '#']
+        self.sentencia_actual = ['inicio', 'inicio', '#'] #Solo son para pruebas, se debe eliminar y colocar vacia la lista
 
     def agregar_historial(self, regla):
         self.pasos += 1
+
         self.historial.append({
             "estado": self.estado,
             "indice": self.indice,
-            "sentencia_analizada": self.sentencia_analizada,
-            "sentencia_actual": self.sentencia_actual,
+            "sentencia_analizada": copy.deepcopy(self.sentencia_analizada),
+            "sentencia_actual": copy.deepcopy(self.sentencia_actual),
             "pasos": self.pasos,
             "Regla": regla
         })

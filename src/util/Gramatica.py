@@ -8,7 +8,6 @@ class Gramatica:
         """
 
         self.contador_alternativas = 0 # Contador para las alternativas de la gramática en dado caso de que un terminal tenga más de una expansión.
-        self.bandera_expansion = False #bandera para indicar si se a cambiado a otra expansion o si se sigue con la misma.
 
         if terminales :
             self.terminales = terminales

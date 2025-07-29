@@ -36,7 +36,7 @@ class Gramatica:
 
                 "lista_instrucciones": [
                     ["instruccion"],
-                    ["instruccion", "lista_instrucciones1"]
+                    ["instruccion", "lista_instrucciones"]
                 ],
 
                 "instruccion": [

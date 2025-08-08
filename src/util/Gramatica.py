@@ -6,9 +6,6 @@ class Gramatica:
         Inicializa la gramática con una lista de tokens o una gramática predefinida.
         :param gramatica: Una lista de tokens o un objeto de gramática predefinido.
         """
-
-        self.contador_alternativas = 0 # Contador para las alternativas de la gramática en dado caso de que un terminal tenga más de una expansión.
-
         if terminales :
             self.terminales = terminales
         else:
@@ -105,7 +102,7 @@ class Gramatica:
                     ["[0-9]+"]
                 ],
 
-                "decimal": [
+                "entero": [
                     ["[0-9]+\\.[0-9]+"]
                 ],
 
@@ -250,46 +247,4 @@ class Gramatica:
         """
         return simbolo in self.gramatica
 
-    def es_no_terminal(self, simbolo: str) -> bool:
-        """
-        Verifica si un símbolo es un no terminal (existe como clave en la gramática).
-
-        :param simbolo: El símbolo a verificar.
-        :return: True si es no terminal, False en caso contrario.
-        """
-        return simbolo in self.gramatica
-
-    def es_terminal(self, simbolo: str) -> bool:
-        """
-        Verifica si un símbolo es terminal (no es clave en la gramática).
-
-        :param simbolo: El símbolo a verificar.
-        :return: True si es terminal, False en caso contrario.
-        """
-        return simbolo not in self.gramatica
-
-    def obtener_alternativa(self, no_terminal: str) -> list[str] | None:
-        """
-        Devuelve la siguiente alternativa para el no terminal dado,
-        o None si ya no hay más alternativas.
-
-        Reinicia el contador si cambia el no_terminal.
-
-        :param no_terminal: No terminal a obtener la alternativa.
-        :return: Expansión (lista de símbolos) o None.
-        """
-        if not self.es_no_terminal(no_terminal):
-            raise ValueError(f"'{no_terminal}' no es un no terminal válido.")
-
-        if not hasattr(self, 'ultimo_no_terminal') or self.ultimo_no_terminal != no_terminal:
-            self.contador_alternativas = 0
-            self.ultimo_no_terminal = no_terminal
-
-        if self.contador_alternativas >= len(self.gramatica[no_terminal]):
-            self.contador_alternativas = 0
-            return None
-
-        alternativa = self.gramatica[no_terminal][self.contador_alternativas]
-        self.contador_alternativas += 1
-        return alternativa
 

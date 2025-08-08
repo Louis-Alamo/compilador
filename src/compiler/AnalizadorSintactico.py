@@ -40,7 +40,6 @@ class AnalizadorSintactico:
             
         print(self.estado_parseo.get_historial())
 
-
     def seleccionar_regla_con_n(self):
 
         print("debugger")
@@ -49,10 +48,6 @@ class AnalizadorSintactico:
 
         elif self.estado_parseo.get_elemento_sentencia_actual() != self.lista_tokens[self.estado_parseo.get_indice()]:
             self.no_concordancia_de_un_simbolo()
-
-
-
-
 
     def seleccionar_regla_con_r(self):
         """
@@ -83,7 +78,6 @@ class AnalizadorSintactico:
             # No hay más elementos para retroceder, fallo total
             self.estado_parseo.set_estado_("t")
             self.estado_parseo.agregar_historial("6. Fallo total - No hay más alternativas")
-
 
     def expansion_del_arbol(self, lista_tokens):
         """
@@ -218,7 +212,6 @@ class AnalizadorSintactico:
 
         self.estado_parseo.incrementar_indice()
         self.estado_parseo.agregar_historial("2. Concordancia de un símbolo")
-
 
     def terminacion_con_exito(self):
      

@@ -35,3 +35,20 @@ class Tokenizador:
                 tokens.append(token)
 
         return tokens
+
+    @staticmethod
+    def es_regex_valida(cadena: str) -> bool:
+        """
+        Verifica si la cadena es una expresión regular válida.
+
+        Args:
+            cadena (str): Cadena a verificar.
+
+        Returns:
+            bool: True si es una regex válida, False en caso contrario.
+        """
+        try:
+            re.compile(cadena)
+            return True
+        except re.error:
+            return False

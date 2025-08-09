@@ -8,4 +8,15 @@ class Estado:
         self.alternativas = alternativas[:] if alternativas else []
 
     def __str__(self) -> str:
-        return f"R: {self.r}\tS: {self.s}\tI: {self.i}\tA: {self.a}\tB: {self.b}"
+        RESET = "\033[0m"
+        RED = "\033[31m"
+        GREEN = "\033[32m"
+        YELLOW = "\033[33m"
+        CYAN = "\033[36m"
+        MAGENTA = "\033[35m"
+
+        return (f"R: {RED}{self.r}{RESET}\t"
+                f"S: {GREEN}{self.s}{RESET}\t"
+                f"I: {YELLOW}{self.i}{RESET}\t"
+                f"A: {CYAN}{self.a}{RESET}\t"
+                f"B: {MAGENTA}{self.b}{RESET}")

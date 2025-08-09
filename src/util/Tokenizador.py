@@ -52,3 +52,17 @@ class Tokenizador:
             return True
         except re.error:
             return False
+
+    @staticmethod
+    def cumple_patron(cadena: str, patron: str) -> bool:
+        """
+        Verifica si la cadena cumple completamente con el patrón regex dado.
+
+        Args:
+            cadena (str): Cadena a verificar.
+            patron (str): Patrón regex.
+
+        Returns:
+            bool: True si la cadena cumple con el patrón, False en caso contrario.
+        """
+        return re.fullmatch(patron, cadena) is not None

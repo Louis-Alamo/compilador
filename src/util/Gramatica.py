@@ -87,9 +87,9 @@ class Gramatica:
                 ],
 
                 "valor": [
-                    ["numero"],
-                    ["decimal"],
-                    ["palabra"],
+                    ["[0-9]+"],  # terminal regex para enteros
+                    ["[0-9]+\\.[0-9]+"],  # terminal regex para decimales
+                    ["[^\\n]+"],  # terminal regex para cadenas con cualquier símbolo excepto salto de línea,  # terminal regex para identificadores o palabras
                     ["verdadero"],
                     ["falso"]
                 ],
@@ -98,17 +98,6 @@ class Gramatica:
                     ["#", "texto_comentario"]
                 ],
 
-                "numero": [
-                    ["[0-9]+"]
-                ],
-
-                "entero": [
-                    ["[0-9]+\\.[0-9]+"]
-                ],
-
-                "palabra": [
-                    ["[a-zA-Z_][a-zA-Z0-9_]*"]
-                ],
 
                 "identificador": [
                     ["[a-z][a-zA-Z0-9_]*"]
@@ -236,7 +225,16 @@ class Gramatica:
         :param simbolo: El símbolo a verificar.
         :return: True si el símbolo es un terminal, False en caso contrario.
         """
-        return simbolo not in self.gramatica and not simbolo.startswith('[') and not simbolo.endswith(']')
+        # Si es clave en la gramática, es no terminal
+        if simbolo in self.gramatica:
+            return False
+
+        # Si comienza y termina con corchetes, es regex (terminal)
+        if simbolo.startswith('[') and simbolo.endswith(']'):
+            return True
+
+        # En cualquier otro caso, lo consideras terminal literal
+        return True
 
     def es_no_terminal(self, simbolo: str) -> bool:
         """

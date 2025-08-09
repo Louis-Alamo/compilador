@@ -4,9 +4,7 @@ from src.util.Tokenizador import Tokenizador
 
 
 codigo = """fin 
-palabra suma, numero1,numero2; 
-entero numero_decimal; 
-numero nombre; 
+entero variable1;  
 inicio"""
 
 patrones = [
@@ -28,7 +26,7 @@ lista_tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones)
 
 objeto = AnalizadorSintacticoV2(lista_tokens)
 objeto.analizar()
-objeto.mostrar_estados()
+#objeto.mostrar_estados()
 
 
 

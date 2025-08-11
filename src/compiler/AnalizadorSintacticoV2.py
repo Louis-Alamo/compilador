@@ -10,6 +10,8 @@ class AnalizadorSintacticoV2:
         self.tokens = tokens  #<- Es la lista de tokens a analizar
         self.lista_estados = []
         self.contador_global = 0
+        self.sin_alternativas = False #<- Indica si se han agotado las alternativas para un no terminal
+
 
         self.gramatica = Gramatica()
 
@@ -35,6 +37,9 @@ class AnalizadorSintacticoV2:
             elif self.estado_actual.s == "r":
 
                 if self.retroceso_a_la_entrada():
+                    continue
+
+                elif self.siguiente_alternativa_a():
                     continue
 
                 else:
@@ -146,6 +151,109 @@ class AnalizadorSintacticoV2:
         self.lista_estados.append(
             Estado("r", self.contador_global, "5", pila_a, pila_b, self.estado_actual.alternativas)
         )
+        return True
+
+    def siguiente_alternativa_a(self) -> bool:
+        if self.estado_actual.s != "r":
+            return False
+
+        if self.sin_alternativas:
+            return False
+
+        # Revisar si es un no terminal
+        simbolo_actual = self.estado_actual.a[-1]
+        if not self.gramatica.es_no_terminal(simbolo_actual):
+            return False
+
+        # Producción actual y todas las alternativas del no terminal
+        produccion_actual = self.gramatica.obtener_expansiones(simbolo_actual)[self.estado_actual.alternativas[-1]]
+        todas_producciones = self.gramatica.obtener_expansiones(simbolo_actual)
+
+        # Copia de índice de alternativas
+        indice_alternativas = self.estado_actual.alternativas.copy()
+
+        # Verificar si hay más alternativas
+        if indice_alternativas[-1] >= len(todas_producciones) - 1:
+            self.sin_alternativas = True # No hay más alternativas para este no terminal
+            return False
+        else:
+            indice_alternativas[-1] += 1 #Aumentar el índice de alternativas para pasar a la siguiente alternativa
+
+        # Eliminar tokens viejos de la pila B
+        lista_b = self.estado_actual.b.copy()
+        for _ in range(len(produccion_actual)):
+            lista_b.pop(0)
+
+        # Agregar la nueva producción
+        lista_b = todas_producciones[indice_alternativas[-1]] + lista_b
+
+        # Nuevo estado
+        self.lista_estados.append(
+            Estado("n", self.contador_global, "6a", self.estado_actual.a, lista_b, indice_alternativas)
+        )
+        return True
+
+    def siguiente_alternativa_b(self) -> bool:
+        if self.estado_actual.s != "r":
+            return False
+
+        # Revisamos que la pila a no esté vacía
+        if not self.estado_actual.a:
+            return False
+
+        no_terminal = self.estado_actual.a[-1]
+
+        # Verificamos que sea un no terminal y que sea el token de inicio "programa"
+        if self.gramatica.es_no_terminal(no_terminal) and no_terminal == "programa":
+            # Cambiamos el estado a error 'e'
+            self.lista_estados.append(
+                Estado("e", self.estado_actual.i,"6b", self.estado_actual.a.copy(), self.estado_actual.b.copy(),
+                       self.estado_actual.alternativas.copy())
+            )
+            return True
+
+        return False
+
+    def regla_6c(self) -> bool:
+        if self.estado_actual.s != "r":
+            return False
+
+        # Si no está activada la bandera de sin alternativas, no tiene caso seguir
+        if not self.sin_alternativas:
+            return False
+
+        # Verificamos que la pila 'a' no esté vacía
+        if not self.estado_actual.a:
+            return False
+
+        # Sacamos el no terminal de la pila 'a'
+        pila_a = self.estado_actual.a.copy()
+        no_terminal = pila_a.pop()
+
+        # Lo metemos al inicio de la pila 'b'
+        pila_b = self.estado_actual.b.copy()
+        pila_b.insert(0, no_terminal)
+
+        # Copiamos lista de alternativas y removemos la última alternativa
+        lista_alternativas = self.estado_actual.alternativas.copy()
+        if lista_alternativas:
+            lista_alternativas.pop()
+
+        # Creamos el nuevo estado manteniendo 'r'
+        self.lista_estados.append(
+            Estado(
+                "r",
+                self.estado_actual.i,
+                "6c",
+                pila_a,
+                pila_b,
+                lista_alternativas
+            )
+        )
+
+        # Reseteamos la bandera
+        self.sin_alternativas = False
+
         return True
 
     def mostrar_estados(self) -> None:

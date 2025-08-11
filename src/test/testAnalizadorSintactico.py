@@ -3,7 +3,7 @@ from src.compiler.AnalizadorSintactico import AnalizadorSintactico
 
 
 codigo = """fin 
-palabra suma, numero1,numero2; 
+palabra suma; 
 entero numero_decimal; 
 numero nombre; 
 inicio"""

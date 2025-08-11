@@ -3,8 +3,10 @@ from src.compiler.AnalizadorSintacticoV2 import AnalizadorSintacticoV2
 from src.util.Tokenizador import Tokenizador
 
 
-codigo = """fin 
-entero variable1
+codigo = """fin
+numero_decimal = 3.14
+borrar numero1;
+
 inicio"""
 
 patrones = [

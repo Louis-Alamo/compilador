@@ -19,10 +19,9 @@ class AnalizadorSintacticoV2:
         self.lista_estados.append(Estado("n", 0, "null",  [], ['programa', '#'] ))
 
     def analizar(self):
-        print("Se procede a realizar el análisis...")
-
         while True:
             self.estado_actual = self.lista_estados[-1]
+
 
             if self.estado_actual.s == "n":
                 if self.expansion_del_arbol():
@@ -42,8 +41,11 @@ class AnalizadorSintacticoV2:
                 elif self.siguiente_alternativa_a():
                     continue
 
-                else:
-                    break
+                elif self.siguiente_alternativa_b():
+                    continue
+
+                elif self.siguiente_alternativa_c():
+                    continue
 
             elif self.estado_actual.s == "t" or self.estado_actual.s == 'e':
                 print("Analiis concluido exitosamente.")
@@ -51,7 +53,9 @@ class AnalizadorSintacticoV2:
                 break
 
             else:
+                print("ERROR INESPERADO NO SABEMOS QPDO")
                 break
+
 
 
 
@@ -214,47 +218,62 @@ class AnalizadorSintacticoV2:
 
         return False
 
-    def regla_6c(self) -> bool:
+    def siguiente_alternativa_c(self) -> bool:
         if self.estado_actual.s != "r":
             return False
 
-        # Si no está activada la bandera de sin alternativas, no tiene caso seguir
         if not self.sin_alternativas:
             return False
 
-        # Verificamos que la pila 'a' no esté vacía
         if not self.estado_actual.a:
             return False
 
-        # Sacamos el no terminal de la pila 'a'
         pila_a = self.estado_actual.a.copy()
         no_terminal = pila_a.pop()
 
-        # Lo metemos al inicio de la pila 'b'
+        # Obtener todas las producciones del no terminal
+        todas_producciones = self.gramatica.obtener_expansiones(no_terminal)
+
+        # Obtener la alternativa que fue usada (última de lista alternativas)
+        lista_alternativas = self.estado_actual.alternativas.copy()
+        if lista_alternativas:
+            indice_actual = lista_alternativas[-1]
+        else:
+            # Por si no hay alternativa guardada, asumimos la 0 (o regresar False)
+            indice_actual = 0
+
+        produccion_usada = todas_producciones[indice_actual]
+
         pila_b = self.estado_actual.b.copy()
+
+        # ELIMINAR la producción usada completa de la pila B (tokens de la producción previa)
+        for _ in range(len(produccion_usada)):
+            if pila_b and pila_b[0] == produccion_usada[0]:
+                pila_b.pop(0)
+            else:
+                # Si el token no coincide, solo eliminamos de todos modos para evitar bucle
+                # (puedes ajustar lógica para ser más exacto)
+                pila_b.pop(0)
+
+        # Ahora insertamos el no terminal (sin alternativas) al inicio de pila B
         pila_b.insert(0, no_terminal)
 
-        # Copiamos lista de alternativas y removemos la última alternativa
-        lista_alternativas = self.estado_actual.alternativas.copy()
+        # Removemos la última alternativa usada de la lista de alternativas
         if lista_alternativas:
             lista_alternativas.pop()
 
-        # Creamos el nuevo estado manteniendo 'r'
-        self.lista_estados.append(
-            Estado(
-                "r",
-                self.estado_actual.i,
-                "6c",
-                pila_a,
-                pila_b,
-                lista_alternativas
-            )
-        )
-
-        # Reseteamos la bandera
+        # Agregamos nuevo estado con bandera sin_alternativas False para poder seguir reglas
         self.sin_alternativas = False
 
+        self.lista_estados.append(
+            Estado("r", self.estado_actual.i, "6c", pila_a, pila_b, lista_alternativas)
+        )
+
         return True
+
+    def mostrar_estado_actual(self) -> None:
+        if self.estado_actual:
+            print(self.estado_actual)
 
     def mostrar_estados(self) -> None:
         print("Lista de tokens:")

@@ -1,307 +1,284 @@
-from src.models.EstadoParseo import EstadoParseo
-from src.util.Tokenizador import Tokenizador
+from src.models.Estado import Estado
 from src.util.Gramatica import Gramatica
+from src.util.Tokenizador import Tokenizador
+
 
 class AnalizadorSintactico:
 
-    def __init__(self, codigo):
-        patrones = [
-            r'\d+\.[a-zA-Z_][a-zA-Z0-9_]*',  # palabras con punto (ej: 3.14hola)
-            r'\d+[a-zA-Z_][a-zA-Z0-9_]*',  # palabras con número (ej: 8hola)
-            r'\d+(\.\d+){2,}',  # número con más de un punto (ej: 3.14.15)
-            r'\d+\.\d+',  # decimal válido (3.14)
-            r'\d+\.',  # decimal incompleto (8.)
-            r'[a-zA-Z_][a-zA-Z0-9_]*',  # identificador válido
-            r'\d+',  # entero válido
-            r'(["])',  # comillas para cadenas
-            r'([,.;:(){}\[\]\+\-\*/=<>!?#%&|@^~])',  # delimitadores clásicos
-            r'(\s)'  # espacio en blanco
-        ]
+    def __init__(self, tokens: list) -> None:
 
-        self.estado_parseo = EstadoParseo()
-        self.gramatica = Gramatica()  # Inicializar la gramática
-        #self.lista_tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones) #<- Es la cadena a analizar
-        self.lista_tokens = ['inicio', 'fin'] #<- es solo para pruebas puedes agregar tokens especificos , se debe eliminar
+        self.tokens = tokens  #<- Es la lista de tokens a analizar
+        self.lista_estados = []
+        self.contador_global = 0
+        self.sin_alternativas = False #<- Indica si se han agotado las alternativas para un no terminal
 
-        self.iniciar_analisis(self.lista_tokens)
 
-    def iniciar_analisis(self, lista_tokens):
+        self.gramatica = Gramatica()
 
-        # Inicializar con el símbolo inicial de la gramática
-        self.estado_parseo.sentencia_actual = ['programa', '#']
-        
-        # Comenzar el análisis recursivo
-        resultado = self.continuar_analisis_recursivo(lista_tokens)
-        
-        if resultado:
-            print("Análisis completado exitosamente")
-        else:
-            print("Análisis falló")
-            
-        print(self.estado_parseo.get_historial())
 
-    def seleccionar_regla_con_n(self):
+        self.lista_estados.append(Estado("n", 0, "null",  [], ['programa', '#'] ))
 
-        print("debugger")
-        if self.estado_parseo.get_elemento_sentencia_actual() == self.lista_tokens[self.estado_parseo.get_indice()]:
-            self.concordancia_de_un_simbolo()
-
-        elif self.estado_parseo.get_elemento_sentencia_actual() != self.lista_tokens[self.estado_parseo.get_indice()]:
-            self.no_concordancia_de_un_simbolo()
-
-    def seleccionar_regla_con_r(self):
-        """
-        Maneja el estado de retroceso (r) cuando hay no concordancia.
-        Implementa la regla: (r, i, aAj, σjβ) → (e, i, aAj1, σj+1β) Cuando no hay otra alternativa
-        """
-        # Obtener el contexto de la última expansión
-        ultimo_no_terminal = self.estado_parseo.get_ultimo_no_terminal_expandido()
-        ultimo_indice_alternativa = self.estado_parseo.get_ultimo_indice_alternativa()
-        
-        # Verificar si se han agotado todas las alternativas para el último no-terminal
-        if ultimo_no_terminal and ultimo_indice_alternativa >= 0:
-            alternativas = self.gramatica.obtener_expansiones(ultimo_no_terminal)
-            if alternativas and ultimo_indice_alternativa >= len(alternativas) - 1:
-                # Se han agotado todas las alternativas para este no-terminal
-                # Aplicar la regla: (r, i, aAj, σjβ) → (e, i, aAj1, σj+1β)
-                self.estado_parseo.set_estado_("e")
-                self.estado_parseo.agregar_historial(f"7. Error: No hay más alternativas para '{ultimo_no_terminal}'")
-                self.estado_parseo.limpiar_contexto_expansion()
-                return
-        
-        # Si no se han agotado las alternativas o no hay contexto de expansión,
-        # intentar retroceso a la entrada
-        if self.retroceso_a_la_entrada():
-            # Si el retroceso fue exitoso, volver al estado normal
-            self.estado_parseo.set_estado_("n")
-        else:
-            # No hay más elementos para retroceder, fallo total
-            self.estado_parseo.set_estado_("t")
-            self.estado_parseo.agregar_historial("6. Fallo total - No hay más alternativas")
-
-    def expansion_del_arbol(self, lista_tokens):
-        """
-        Implementa la regla de expansión del árbol: (n, i, a, Aẞ) → (n, i, αΑ, σβ)
-        Donde:
-        - n: estado actual
-        - i: índice en la entrada
-        - a: sentencia analizada
-        - Aẞ: sentencia actual (A es el no-terminal a expandir, ẞ es el resto)
-        - αΑ: nueva sentencia actual después de la expansión
-        - σβ: resto de la sentencia
-        """
-        # Obtener el primer elemento de la sentencia actual (el no-terminal A)
-        no_terminal = self.estado_parseo.get_elemento_sentencia_actual()
-        
-        if not no_terminal:
-            return False
-            
-        # Verificar si es un no-terminal válido
-        if not self.gramatica.es_no_terminal(no_terminal):
-            return False
-            
-        # Obtener todas las alternativas para este no-terminal
-        alternativas = self.gramatica.obtener_expansiones(no_terminal)
-        
-        if not alternativas:
-            # No hay alternativas, retroceder
-            self.estado_parseo.agregar_historial(f"1. Expansión del árbol: {no_terminal} - Sin alternativas")
-            return False
-            
-        # Intentar cada alternativa
-        for indice_alternativa, alternativa in enumerate(alternativas):
-            # Establecer el contexto de expansión
-            self.estado_parseo.set_contexto_expansion(no_terminal, indice_alternativa)
-            
-            # Obtener la alternativa específica
-            alternativa_actual = self.gramatica.obtener_alternativa(no_terminal)
-            
-            if not alternativa_actual:
-                # No hay más alternativas para este no-terminal
-                self.estado_parseo.limpiar_contexto_expansion()
-                return False
-                
-            # Eliminar el no-terminal de la sentencia actual
-            self.estado_parseo.eliminar_token_a_sentencia_actual()
-            
-            # Insertar la alternativa al inicio de la sentencia actual (en orden inverso)
-            # para que se procese de izquierda a derecha
-            for simbolo in reversed(alternativa_actual):
-                self.estado_parseo.agregar_token_a_sentencia_actual(simbolo)
-                
-            # Agregar al historial
-            self.estado_parseo.agregar_historial(f"1. Expansión del árbol: {no_terminal} → {alternativa_actual}")
-            
-            # Continuar con el análisis recursivo
-            if self.continuar_analisis_recursivo(lista_tokens):
-                # Si el análisis fue exitoso, limpiar el contexto
-                self.estado_parseo.limpiar_contexto_expansion()
-                return True
-            else:
-                # Si el análisis falló, verificar si debemos continuar con la siguiente alternativa
-                estado_actual = self.estado_parseo.get_estado()
-                if estado_actual == "e":
-                    # Error definitivo, no hay más alternativas
-                    return False
-                elif estado_actual == "t":
-                    # Terminación exitosa
-                    return True
-                else:
-                    # Continuar con la siguiente alternativa
-                    continue
-        
-        # Si llegamos aquí, todas las alternativas fallaron
-        self.estado_parseo.limpiar_contexto_expansion()
-        return False
-    
-    def continuar_analisis_recursivo(self, lista_tokens):
-        """
-        Continúa el análisis de forma recursiva después de una expansión
-        """
+    def analizar(self):
         while True:
-            if not lista_tokens:
+            self.estado_actual = self.lista_estados[-1]
+
+
+            if self.estado_actual.s == "n":
+                if self.expansion_del_arbol():
+                    continue
+
+                elif self.concordancia_de_un_simbolo():
+                    continue
+
+                elif self.terminacion_con_exito():
+                    continue
+
+            elif self.estado_actual.s == "r":
+
+                if self.retroceso_a_la_entrada():
+                    continue
+
+                elif self.siguiente_alternativa_a():
+                    continue
+
+                elif self.siguiente_alternativa_b():
+                    continue
+
+                elif self.siguiente_alternativa_c():
+                    continue
+
+            elif self.estado_actual.s == "t" or self.estado_actual.s == 'e':
+                print("Analiis concluido exitosamente.")
+                #self.mostrar_estados()
                 break
-                
-            estado_actual = self.estado_parseo.get_estado()
-            
-            # Verificar si podemos terminar con éxito
-            if self.terminacion_con_exito():
-                break
-                
-            if estado_actual == "t":
-                break
-                
-            elif estado_actual == "e":
-                # Estado de error definitivo
-                return False
-                
-            elif estado_actual == "n":
-                self.estado_parseo.set_estado_("n")
-                
-                # Verificar si el elemento actual es un no-terminal
-                elemento_actual = self.estado_parseo.get_elemento_sentencia_actual()
-                
-                if self.gramatica.es_no_terminal(elemento_actual):
-                    # Es un no-terminal, expandir recursivamente
-                    if not self.expansion_del_arbol(lista_tokens):
-                        # Si la expansión falla, intentar con la siguiente alternativa
-                        return self.siguiente_alternativa_a()
-                else:
-                    # Es un terminal, intentar concordancia
-                    if self.estado_parseo.get_indice() < len(lista_tokens):
-                        if elemento_actual == lista_tokens[self.estado_parseo.get_indice()]:
-                            self.concordancia_de_un_simbolo()
-                        else:
-                            self.no_concordancia_de_un_simbolo()
-                    else:
-                        # No hay más tokens para procesar
-                        return False
-                    
-            elif estado_actual == "r":
-                self.seleccionar_regla_con_r()
-                
+
             else:
-                print(f"Estado desconocido: {estado_actual}")
+                print("ERROR INESPERADO NO SABEMOS QPDO")
                 break
-                
+
+
+
+
+    def expansion_del_arbol(self) -> bool:
+
+        # Verificamos si se puede aplicar la regla de expansión del árbol
+        if self.gramatica.es_no_terminal(self.estado_actual.b[0]):
+
+            # Obtenemos las listas copiadas
+            lista_a = self.estado_actual.a.copy()
+            lista_b = self.estado_actual.b.copy()
+            lista_alternativas = self.estado_actual.alternativas.copy()
+
+            # Obtenemos las expansiones posibles de la gramática para el no terminal actual
+            alternativas_gramatica = self.gramatica.obtener_expansiones(lista_b[0])
+
+            lista_a.append(lista_b.pop(0))  # Movemos el no terminal analizado a la lista A
+
+            # Insertamos la primera alternativa (índice 0) en B
+            lista_b = alternativas_gramatica[0] + lista_b
+
+            # Registramos que estamos usando la alternativa 0 de este no terminal
+            lista_alternativas.append(0)
+
+            # Creamos el nuevo estado y lo agregamos a la pila de estados
+            nuevo_estado = Estado("n", self.contador_global,"1", lista_a, lista_b, lista_alternativas)
+            self.lista_estados.append(nuevo_estado)
+
+            return True
+
+        else:
+            return False
+
+    #Aqui se aplica la regla 2 y 4
+    def concordancia_de_un_simbolo(self) -> bool:
+        if self.estado_actual.s != "n" or self.estado_actual.i >= len(self.tokens):
+            return False
+
+        token_de_la_lista = self.tokens[self.estado_actual.i]
+        token_de_la_pila = self.estado_actual.b[0]
+
+        def aplicar_regla_concordancia():
+            lista_a = self.estado_actual.a.copy()
+            lista_b = self.estado_actual.b.copy()
+            terminal = lista_b.pop(0)
+            lista_a.append(terminal)
+            self.contador_global += 1
+            self.lista_estados.append(
+                Estado("n", self.contador_global, "2", lista_a, lista_b, self.estado_actual.alternativas)
+            )
+
+        def aplicar_regla_no_concordancia():
+            self.lista_estados.append(
+                Estado("r", self.contador_global, "4", self.estado_actual.a, self.estado_actual.b,
+                       self.estado_actual.alternativas)
+            )
+
+        # Caso terminal regex
+        if Tokenizador.es_regex_valida(token_de_la_pila) and \
+                Tokenizador.cumple_patron(token_de_la_lista, token_de_la_pila) and \
+                self.gramatica.es_terminal(token_de_la_pila):
+
+            aplicar_regla_concordancia()
+            return True
+
+        # Caso terminal literal
+        if self.gramatica.es_terminal(token_de_la_pila) and token_de_la_lista == token_de_la_pila:
+            aplicar_regla_concordancia()
+            return True
+
+        aplicar_regla_no_concordancia()
+        return False
+
+    def terminacion_con_exito(self) -> None:
+        if self.estado_actual.s == "n" and self.estado_actual.b == ['#']:
+            self.lista_estados.append(
+                Estado("t", self.contador_global, "3", self.estado_actual.a, self.estado_actual.b, self.estado_actual.alternativas)
+            )
+            return True
+        return False
+
+    def retroceso_a_la_entrada(self) -> bool:
+        if self.estado_actual.s != "r":
+            return False
+
+        if not self.estado_actual.a or self.gramatica.es_no_terminal(self.estado_actual.a[-1]):
+            return False
+
+        pila_a = self.estado_actual.a.copy()
+        pila_b = self.estado_actual.b.copy()
+
+        token = pila_a.pop()
+        pila_b.insert(0, token)
+
+        self.contador_global -= 1
+
+        self.lista_estados.append(
+            Estado("r", self.contador_global, "5", pila_a, pila_b, self.estado_actual.alternativas)
+        )
         return True
 
-    def concordancia_de_un_simbolo(self):
-        self.estado_parseo.agregar_token_a_sentencia_analizada(self.lista_tokens[self.estado_parseo.get_indice()])
-        self.estado_parseo.eliminar_token_a_sentencia_actual()
+    def siguiente_alternativa_a(self) -> bool:
+        if self.estado_actual.s != "r":
+            return False
 
-        self.estado_parseo.incrementar_indice()
-        self.estado_parseo.agregar_historial("2. Concordancia de un símbolo")
+        if self.sin_alternativas:
+            return False
 
-    def terminacion_con_exito(self):
-     
-        # Verificar que estamos en el estado normal
-        if self.estado_parseo.get_estado() != "n":
+        # Revisar si es un no terminal
+        simbolo_actual = self.estado_actual.a[-1]
+        if not self.gramatica.es_no_terminal(simbolo_actual):
             return False
-            
-        # Verificar que hemos procesado todos los tokens de entrada
-        if self.estado_parseo.get_indice() < len(self.lista_tokens):
+
+        # Producción actual y todas las alternativas del no terminal
+        produccion_actual = self.gramatica.obtener_expansiones(simbolo_actual)[self.estado_actual.alternativas[-1]]
+        todas_producciones = self.gramatica.obtener_expansiones(simbolo_actual)
+
+        # Copia de índice de alternativas
+        indice_alternativas = self.estado_actual.alternativas.copy()
+
+        # Verificar si hay más alternativas
+        if indice_alternativas[-1] >= len(todas_producciones) - 1:
+            self.sin_alternativas = True # No hay más alternativas para este no terminal
             return False
-            
-        # Verificar que el elemento actual es el marcador de fin
-        if self.estado_parseo.get_elemento_sentencia_actual() != "#":
-            return False
-            
-        # Cambiar el estado a terminación exitosa
-        self.estado_parseo.set_estado_("t")
-        
-        # Eliminar el marcador de fin de la sentencia actual
-        self.estado_parseo.eliminar_token_a_sentencia_actual()
-        
-        # Agregar marcador de fin de análisis exitoso
-        self.estado_parseo.agregar_token_a_sentencia_actual("§")
-        
-        # Agregar al historial
-        self.estado_parseo.agregar_historial("3. Terminación con éxito")
-        
+        else:
+            indice_alternativas[-1] += 1 #Aumentar el índice de alternativas para pasar a la siguiente alternativa
+
+        # Eliminar tokens viejos de la pila B
+        lista_b = self.estado_actual.b.copy()
+        for _ in range(len(produccion_actual)):
+            lista_b.pop(0)
+
+        # Agregar la nueva producción
+        lista_b = todas_producciones[indice_alternativas[-1]] + lista_b
+
+        # Nuevo estado
+        self.lista_estados.append(
+            Estado("n", self.contador_global, "6a", self.estado_actual.a, lista_b, indice_alternativas)
+        )
         return True
 
-    def no_concordancia_de_un_simbolo(self):
-        self.estado_parseo.set_estado_("r")
-        self.estado_parseo.agregar_historial("4. No concordancia de un símbolo")
+    def siguiente_alternativa_b(self) -> bool:
+        if self.estado_actual.s != "r":
+            return False
 
-    def retroceso_a_la_entrada(self):
+        # Revisamos que la pila a no esté vacía
+        if not self.estado_actual.a:
+            return False
 
-        # Verificar que estamos en estado de retroceso
-        if self.estado_parseo.get_estado() != "r":
+        no_terminal = self.estado_actual.a[-1]
+
+        # Verificamos que sea un no terminal y que sea el token de inicio "programa"
+        if self.gramatica.es_no_terminal(no_terminal) and no_terminal == "programa":
+            # Cambiamos el estado a error 'e'
+            self.lista_estados.append(
+                Estado("e", self.estado_actual.i,"6b", self.estado_actual.a.copy(), self.estado_actual.b.copy(),
+                       self.estado_actual.alternativas.copy())
+            )
+            return True
+
+        return False
+
+    def siguiente_alternativa_c(self) -> bool:
+        if self.estado_actual.s != "r":
             return False
-            
-        # Verificar que hay elementos en la sentencia analizada para retroceder
-        if not self.estado_parseo.sentencia_analizada:
+
+        if not self.sin_alternativas:
             return False
-            
-        # Verificar que el índice es mayor que 0 para poder retroceder
-        if self.estado_parseo.get_indice() <= 0:
+
+        if not self.estado_actual.a:
             return False
-            
-        # Obtener el último elemento de la sentencia analizada (a)
-        ultimo_analizado = self.estado_parseo.sentencia_analizada.pop()
-        
-        # Decrementar el índice (i-1)
-        self.estado_parseo.decrementar_indice()
-        
-        # Agregar el elemento retrocedido al inicio de la sentencia actual (aß)
-        self.estado_parseo.agregar_token_a_sentencia_actual(ultimo_analizado)
-        
-        # Agregar al historial
-        self.estado_parseo.agregar_historial("5. Retroceso a la entrada")
-        
+
+        pila_a = self.estado_actual.a.copy()
+        no_terminal = pila_a.pop()
+
+        # Obtener todas las producciones del no terminal
+        todas_producciones = self.gramatica.obtener_expansiones(no_terminal)
+
+        # Obtener la alternativa que fue usada (última de lista alternativas)
+        lista_alternativas = self.estado_actual.alternativas.copy()
+        if lista_alternativas:
+            indice_actual = lista_alternativas[-1]
+        else:
+            # Por si no hay alternativa guardada, asumimos la 0 (o regresar False)
+            indice_actual = 0
+
+        produccion_usada = todas_producciones[indice_actual]
+
+        pila_b = self.estado_actual.b.copy()
+
+        # ELIMINAR la producción usada completa de la pila B (tokens de la producción previa)
+        for _ in range(len(produccion_usada)):
+            if pila_b and pila_b[0] == produccion_usada[0]:
+                pila_b.pop(0)
+            else:
+                # Si el token no coincide, solo eliminamos de todos modos para evitar bucle
+                # (puedes ajustar lógica para ser más exacto)
+                pila_b.pop(0)
+
+        # Ahora insertamos el no terminal (sin alternativas) al inicio de pila B
+        pila_b.insert(0, no_terminal)
+
+        # Removemos la última alternativa usada de la lista de alternativas
+        if lista_alternativas:
+            lista_alternativas.pop()
+
+        # Agregamos nuevo estado con bandera sin_alternativas False para poder seguir reglas
+        self.sin_alternativas = False
+
+        self.lista_estados.append(
+            Estado("r", self.estado_actual.i, "6c", pila_a, pila_b, lista_alternativas)
+        )
+
         return True
 
-    def siguiente_alternativa_a(self):
-        """
-        Implementa la siguiente alternativa cuando una expansión falla.
-        Retrocede y prueba con la siguiente regla gramatical disponible.
-        """
-        # Obtener el elemento actual de la sentencia analizada
-        if not self.estado_parseo.sentencia_analizada:
-            return False
-            
-        # Retroceder en la sentencia analizada
-        ultimo_analizado = self.estado_parseo.sentencia_analizada.pop()
-        
-        # Retroceder en el índice
-        self.estado_parseo.decrementar_indice()
-        
-        # Agregar el elemento de vuelta a la sentencia actual
-        self.estado_parseo.agregar_token_a_sentencia_actual(ultimo_analizado)
-        
-        # Agregar al historial
-        self.estado_parseo.agregar_historial("3. Siguiente alternativa A - Retroceso")
-        
-        # Continuar con el análisis recursivo
-        return self.continuar_analisis_recursivo(self.lista_tokens)
+    def mostrar_estado_actual(self) -> None:
+        if self.estado_actual:
+            print(self.estado_actual)
 
-    def sigueinte_alternativa_b(self):
-        pass
+    def mostrar_estados(self) -> None:
+        print("Lista de tokens:")
+        print(self.tokens)
 
-    def siguiente_alternativa_c(self):
-        pass
-
-
-
+        print("Estados generados:")
+        for estado in self.lista_estados:
+            print(estado)

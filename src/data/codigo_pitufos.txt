@@ -3,8 +3,8 @@ fin
     entero numero_decimal;
     numero nombre;
     quiza bandera;
-    bandera = verdadero
-    numero_decimal = 3.14
+    bandera = verdadero;
+    numero_decimal = 3.14;
     ocultar ("Dame un numero");
     borrar numero1
     ocultar ("Dame otro numero");

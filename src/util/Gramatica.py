@@ -18,7 +18,7 @@ class Gramatica:
                 "[0-9]+\\.[0-9]+",
                 "[a-zA-Z_][a-zA-Z0-9_]*",
                 "[a-z][a-zA-Z0-9_]*",
-                "[a-zA-Z0-9_ ]+"
+                "[a-zA-Z0-9_]+"
             ]
 
         if gramatica:
@@ -64,20 +64,21 @@ class Gramatica:
                 ],
 
                 "entrada_salida": [
-                    ["ocultar", "(", "elemento_salida", ")"],
+                    ["ocultar", "(", "expresion", ")"],
+                    ["ocultar", "(", "expresion", ",", "expresion", ")"],
                     ["borrar", "identificador"]
                 ],
 
-                "elemento_salida": [
-                    ["expresion"],
-                    ["expresion", ",", "elemento_salida"]
-                ],
 
                 "expresion": [
                     ["valor"],
                     ["identificador"],
-                    ["expresion", "operador_arit", "expresion"]
+                    ["valor", "operador_arit", "valor"],
+                    ["identificador", "operador_arit", "valor"],
+                    ["valor", "operador_arit", "identificador"],
+                    ["identificador", "operador_arit", "identificador"]
                 ],
+
 
                 "operador_arit": [
                     ["+"],
@@ -87,17 +88,16 @@ class Gramatica:
                 ],
 
                 "valor": [
+                    ["verdadero"],
+                    ["falso"],
                     ["[0-9]+"],  # terminal regex para enteros
                     ["[0-9]+\\.[0-9]+"],  # terminal regex para decimales
-                    ["[^\\n]+"],  # terminal regex para cadenas con cualquier símbolo excepto salto de línea,  # terminal regex para identificadores o palabras
-                    ["verdadero"],
-                    ["falso"]
+                    ["[^\\n]+"]  # terminal regex para cadenas con cualquier símbolo excepto salto de línea,  # terminal regex para identificadores o palabras
                 ],
 
                 "comentario": [
                     ["#", "texto_comentario"]
                 ],
-
 
                 "identificador": [
                     ["[a-z][a-zA-Z0-9_]*"]

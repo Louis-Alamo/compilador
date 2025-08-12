@@ -21,7 +21,7 @@ class AnalizadorSintactico:
     def analizar(self):
         while True:
             self.estado_actual = self.lista_estados[-1]
-
+            #self.mostrar_estado_actual()
 
             if self.estado_actual.s == "n":
                 if self.expansion_del_arbol():

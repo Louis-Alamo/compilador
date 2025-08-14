@@ -7,9 +7,12 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
 
 from .components.TablaTokens import TablaTokensDialog
+from .components.TablaAnalizisSintactico import TablaAnalizisSintactico
 from src.view.components.CodeEditor import CodeEditor
 from .components.FileExplorer import FileExplorer
 from src.compiler.LexicalAnalizer import LexicalAnalizerForMy
+from src.compiler.AnalizadorSintactico import AnalizadorSintactico
+from src.util.Tokenizador import Tokenizador
 
 
 class EditorApp:
@@ -70,7 +73,6 @@ class EditorApp:
             border-bottom: 1px solid #e0e0e0;
         }
         """
-
     def get_text_edit_style(self):
         """Retorna el estilo CSS para los QTextEdit"""
         return """
@@ -380,8 +382,16 @@ inicio"""
         main_window.show()
         sys.exit(app.exec())
 
+    def mostrar_tabla_analisis_sintactico(self, lista_estados):
+        dialog = TablaAnalizisSintactico(
+            data_list=lista_estados
+        )
+
+        # Conectar señal personalizada (opcional)
+        dialog.exec()  # <-- No eliminar o vale madre todo el dialog
+
     def mostrar_tabla_de_tokens(self, lista_tokens):
-        print(lista_tokens)
+
         dialog = TablaTokensDialog(
             tokens_data=lista_tokens,
             title="Tabla de Tokens"
@@ -405,7 +415,6 @@ inicio"""
                     contenido = file.read()
                     self.editor_widget.set_text(contenido)
                     self.current_file_path = file_path
-                    print(f"Archivo cargado desde explorador: {file_path}")
 
                     # Limpiar pestañas de análisis
                     self.lexico_tab.setPlainText("Análisis léxico no ejecutado")
@@ -436,7 +445,6 @@ inicio"""
                     contenido = file.read()
                     self.editor_widget.set_text(contenido)
                     self.current_file_path = archivo
-                    print(f"Archivo cargado: {archivo}")
 
                     # Limpiar pestañas de análisis al cargar nuevo archivo
                     self.lexico_tab.setPlainText("Análisis léxico no ejecutado")
@@ -453,7 +461,6 @@ inicio"""
                 contenido = self.editor_widget.get_text()
                 with open(self.current_file_path, 'w', encoding='utf-8') as file:
                     file.write(contenido)
-                print(f"Archivo guardado: {self.current_file_path}")
                 QMessageBox.information(None, "Éxito", "Archivo guardado correctamente")
 
                 # Actualizar explorador si está viendo la carpeta del archivo
@@ -482,7 +489,6 @@ inicio"""
                 with open(archivo, 'w', encoding='utf-8') as file:
                     file.write(contenido)
                 self.current_file_path = archivo
-                print(f"Archivo guardado como: {archivo}")
                 QMessageBox.information(None, "Éxito", "Archivo guardado correctamente")
 
                 # Actualizar explorador si está viendo la carpeta del archivo
@@ -518,13 +524,35 @@ inicio"""
 
             self.tab_widget.setCurrentIndex(0)
 
+
         elif tipo_analisis == "Sintáctico":
+            # Simular análisis semántico
+            patrones = [
+                r'\d+\.[a-zA-Z_][a-zA-Z0-9_]*',  # palabras con punto (ej: 3.14hola)
+                r'\d+[a-zA-Z_][a-zA-Z0-9_]*',  # palabras con número (ej: 8hola)
+                r'\d+(\.\d+){2,}',  # número con más de un punto (ej: 3.14.15)
+                r'\d+\.\d+',  # decimal válido (3.14)
+                r'\d+\.',  # decimal incompleto (8.)
+                r'[a-zA-Z_][a-zA-Z0-9_]*',  # identificador válido
+                r'\d+',  # entero válido
+                r'(["])',  # comillas para cadenas
+                r'([,.;:(){}\[\]\+\-\*/=<>!?#%&|@^~])',  # delimitadores clásicos
+                r'(\s)'  # espacio en blanco
+            ]
+
+            lista_tokens = Tokenizador.obtener_tokens_del_codigo(self.editor_widget.get_text(), patrones)
+            analizador_sintactico = AnalizadorSintactico(lista_tokens)
+            bandera = analizador_sintactico.analizar()
+            self.sintactico_tab.setPlainText("Analisis sintactico exitoso\n\n")
+            lista_estados = analizador_sintactico.exportar_estados_tabla()
+            self.mostrar_tabla_analisis_sintactico(lista_estados)
+
+
+
+        elif tipo_analisis == "Semántico":
             # Simular análisis sintáctico
             self.sintactico_tab.setPlainText("ANÁLISIS SINTÁCTICO COMPLETADO\n\n")
             self.tab_widget.setCurrentIndex(1)  # Cambiar a pestaña sintáctico
-
-        elif tipo_analisis == "Semántico":
-            # Simular análisis semántico
 
             self.semantico_tab.setPlainText("ANÁLISIS SEMÁNTICO COMPLETADO\n\n")
             self.tab_widget.setCurrentIndex(2)  # Cambiar a pestaña semántico

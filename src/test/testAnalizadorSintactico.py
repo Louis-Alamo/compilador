@@ -1,16 +1,32 @@
 
 from src.compiler.AnalizadorSintactico import AnalizadorSintactico
 from src.util.Tokenizador import Tokenizador
+from src.view.components.TablaAnalizisSintactico import TablaAnalizisSintactico
 
 
-codigo = """fin
-borrar numero1;
+import sys
+import re
+from PyQt6.QtWidgets import QApplication
+
+
+codigo_ejemplo = """fin
 palabra suma, numero1,numero2;
 entero numero_decimal;
 numero nombre;
 quiza bandera;
+bandera = verdadero
+numero_decimal = 3.14
+ocultar ("Dame un numero");
+borrar numero1
+ocultar ("Dame otro numero");
+borrar numero2
+# Este es un comentario #
+suma = numero1 - numero2
+inicio"""
+
+codigo = """fin
 palabra suma, numero1,numero2;
-palabra suma, numero1,numero2;
+entero numero_decimal;
 inicio"""
 
 patrones = [
@@ -32,7 +48,23 @@ lista_tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones)
 
 objeto = AnalizadorSintactico(lista_tokens)
 objeto.analizar()
-objeto.mostrar_estados()
+lista_estados = objeto.exportar_estados_tabla()
+
+print(lista_estados)
+
+
+# Para mostrar la tabla en una ventana gráfica
+app = QApplication(sys.argv)
+dialog = TablaAnalizisSintactico(lista_estados)
+
+# Conectar funcionalidad básica de los botones (ejemplo)
+dialog.close_btn.clicked.connect(dialog.close)
+dialog.reload_btn.clicked.connect(lambda: dialog.update_status("Recargando...", "info"))
+
+dialog.show()
+
+sys.exit(app.exec())
+#objeto.mostrar_estados()
 
 
 

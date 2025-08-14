@@ -18,7 +18,7 @@ class AnalizadorSintactico:
 
         self.lista_estados.append(Estado("n", 0, "null",  [], ['programa', '#'] ))
 
-    def analizar(self):
+    def analizar(self) -> bool:
         while True:
             self.estado_actual = self.lista_estados[-1]
             #self.mostrar_estado_actual()
@@ -47,17 +47,21 @@ class AnalizadorSintactico:
                 elif self.siguiente_alternativa_c():
                     continue
 
-            elif self.estado_actual.s == "t" or self.estado_actual.s == 'e':
+            elif self.estado_actual.s == "t":
                 print("Analiis concluido exitosamente.")
+                return True #<- Indica que el análisis fue exitoso
                 #self.mostrar_estados()
+                break
+
+            elif self.estado_actual.s == "e":
+                print("ERROR: Análisis sintáctico fallido.")
+                #self.mostrar_estados()
+                return False # <- Indica que el análisis falló
                 break
 
             else:
                 print("ERROR INESPERADO NO SABEMOS QPDO")
                 break
-
-
-
 
     def expansion_del_arbol(self) -> bool:
 
@@ -274,6 +278,24 @@ class AnalizadorSintactico:
     def mostrar_estado_actual(self) -> None:
         if self.estado_actual:
             print(self.estado_actual)
+
+    def exportar_estados_tabla(self) -> list:
+        """
+        Devuelve la información de todos los estados en formato de lista de listas:
+        [S, I, REGLA, lista_A, lista_B]
+        """
+        tabla = []
+        for estado in self.lista_estados:
+            fila = [
+                estado.s,
+                estado.i,
+                estado.r,
+                estado.a.copy(),
+                estado.b.copy()
+            ]
+            tabla.append(fila)
+
+        return tabla
 
     def mostrar_estados(self) -> None:
         print("Lista de tokens:")

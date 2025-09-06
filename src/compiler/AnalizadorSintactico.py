@@ -15,10 +15,16 @@ class AnalizadorSintactico:
 
         self.gramatica = Gramatica()
 
+        self.lista_estados.append(Estado("n", 0, "null", [], ['programa', '#'], []))
 
-        self.lista_estados.append(Estado("n", 0, "null",  [], ['programa', '#'] ))
+
+        #self.lista_estados.append(Estado("n", 0, "null",  [], ['programa', '#'], [] ))
+
+
 
     def analizar(self) -> bool:
+        #print(self.tokens)
+
         while True:
             self.estado_actual = self.lista_estados[-1]
             #self.mostrar_estado_actual()
@@ -70,13 +76,18 @@ class AnalizadorSintactico:
 
             # Obtenemos las listas copiadas
             lista_a = self.estado_actual.a.copy()
+            lista_a_copy = self.estado_actual.a_copy.copy()
             lista_b = self.estado_actual.b.copy()
+
+
             lista_alternativas = self.estado_actual.alternativas.copy()
 
             # Obtenemos las expansiones posibles de la gramática para el no terminal actual
             alternativas_gramatica = self.gramatica.obtener_expansiones(lista_b[0])
 
-            lista_a.append(lista_b.pop(0))  # Movemos el no terminal analizado a la lista A
+            token = lista_b.pop(0)
+            lista_a.append(token)  # Movemos el no terminal analizado a la lista A
+            lista_a_copy.append(token)
 
             # Insertamos la primera alternativa (índice 0) en B
             lista_b = alternativas_gramatica[0] + lista_b
@@ -85,7 +96,7 @@ class AnalizadorSintactico:
             lista_alternativas.append(0)
 
             # Creamos el nuevo estado y lo agregamos a la pila de estados
-            nuevo_estado = Estado("n", self.contador_global,"1", lista_a, lista_b, lista_alternativas)
+            nuevo_estado = Estado("n", self.contador_global,"1", lista_a, lista_b,lista_a_copy, lista_alternativas)
             self.lista_estados.append(nuevo_estado)
 
             return True
@@ -103,17 +114,21 @@ class AnalizadorSintactico:
 
         def aplicar_regla_concordancia():
             lista_a = self.estado_actual.a.copy()
+            lista_a_copy = self.estado_actual.a_copy.copy()
             lista_b = self.estado_actual.b.copy()
+
             terminal = lista_b.pop(0)
             lista_a.append(terminal)
+            lista_a_copy.append(self.tokens[self.estado_actual.i])
+
             self.contador_global += 1
             self.lista_estados.append(
-                Estado("n", self.contador_global, "2", lista_a, lista_b, self.estado_actual.alternativas)
+                Estado("n", self.contador_global, "2", lista_a, lista_b, lista_a_copy, self.estado_actual.alternativas)
             )
 
         def aplicar_regla_no_concordancia():
             self.lista_estados.append(
-                Estado("r", self.contador_global, "4", self.estado_actual.a, self.estado_actual.b,
+                Estado("r", self.contador_global, "4", self.estado_actual.a, self.estado_actual.b, self.estado_actual.a_copy,
                        self.estado_actual.alternativas)
             )
 
@@ -131,12 +146,13 @@ class AnalizadorSintactico:
             return True
 
         aplicar_regla_no_concordancia()
+
         return False
 
     def terminacion_con_exito(self) -> None:
         if self.estado_actual.s == "n" and self.estado_actual.b == ['#']:
             self.lista_estados.append(
-                Estado("t", self.contador_global, "3", self.estado_actual.a, self.estado_actual.b, self.estado_actual.alternativas)
+                Estado("t", self.contador_global, "3", self.estado_actual.a, self.estado_actual.b,self.estado_actual.a_copy, self.estado_actual.alternativas)
             )
             return True
         return False
@@ -149,15 +165,17 @@ class AnalizadorSintactico:
             return False
 
         pila_a = self.estado_actual.a.copy()
+        pila_a_copy = self.estado_actual.a_copy.copy()
         pila_b = self.estado_actual.b.copy()
 
         token = pila_a.pop()
+        pila_a_copy.pop()
         pila_b.insert(0, token)
 
         self.contador_global -= 1
 
         self.lista_estados.append(
-            Estado("r", self.contador_global, "5", pila_a, pila_b, self.estado_actual.alternativas)
+            Estado("r", self.contador_global, "5", pila_a, pila_b,pila_a_copy, self.estado_actual.alternativas)
         )
         return True
 
@@ -197,7 +215,7 @@ class AnalizadorSintactico:
 
         # Nuevo estado
         self.lista_estados.append(
-            Estado("n", self.contador_global, "6a", self.estado_actual.a, lista_b, indice_alternativas)
+            Estado("n", self.contador_global, "6a", self.estado_actual.a, lista_b,self.estado_actual.a_copy, indice_alternativas)
         )
         return True
 
@@ -215,8 +233,8 @@ class AnalizadorSintactico:
         if self.gramatica.es_no_terminal(no_terminal) and no_terminal == "programa":
             # Cambiamos el estado a error 'e'
             self.lista_estados.append(
-                Estado("e", self.estado_actual.i,"6b", self.estado_actual.a.copy(), self.estado_actual.b.copy(),
-                       self.estado_actual.alternativas.copy())
+                Estado("e", self.estado_actual.i,"6b", self.estado_actual.a.copy(), self.estado_actual.b.copy(), self.estado_actual.a_copy.copy(),
+                       self.estado_actual.alternativas)
             )
             return True
 
@@ -233,6 +251,8 @@ class AnalizadorSintactico:
             return False
 
         pila_a = self.estado_actual.a.copy()
+        pila_a_copy = self.estado_actual.a_copy.copy()
+        pila_a_copy.pop()
         no_terminal = pila_a.pop()
 
         # Obtener todas las producciones del no terminal
@@ -270,7 +290,7 @@ class AnalizadorSintactico:
         self.sin_alternativas = False
 
         self.lista_estados.append(
-            Estado("r", self.estado_actual.i, "6c", pila_a, pila_b, lista_alternativas)
+            Estado("r", self.estado_actual.i, "6c", pila_a, pila_b,pila_a_copy, lista_alternativas)
         )
 
         return True
@@ -290,7 +310,7 @@ class AnalizadorSintactico:
                 estado.s,
                 estado.i,
                 estado.r,
-                estado.a.copy(),
+                estado.a_copy.copy(),
                 estado.b.copy()
             ]
             tabla.append(fila)

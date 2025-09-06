@@ -14,11 +14,11 @@ class Gramatica:
                 "+", "-", "*", "/",
                 "entero", "numero", "palabra", "quiza",
                 "verdadero", "falso",
-                "[0-9]+",
-                "[0-9]+\\.[0-9]+",
-                "[a-zA-Z_][a-zA-Z0-9_]*",
-                "[a-z][a-zA-Z0-9_]*",
-                "[a-zA-Z0-9_]+"
+                "[0-9]+",  # enteros
+                "[0-9]+\\.[0-9]+",  # decimales
+                "\".*?\"",  # cadenas
+                "[a-zA-Z_][a-zA-Z0-9_]*",  # identificadores
+                ".*"  # comentarios
             ]
 
         if gramatica:
@@ -69,42 +69,37 @@ class Gramatica:
                     ["borrar", "identificador"]
                 ],
 
-
                 "expresion": [
-                    ["valor"],
-                    ["identificador"],
-                    ["valor", "operador_arit", "valor"],
-                    ["identificador", "operador_arit", "valor"],
-                    ["valor", "operador_arit", "identificador"],
-                    ["identificador", "operador_arit", "identificador"]
+                    ["termino"],
+                    ["termino", "operador_arit", "expresion"]
                 ],
 
+                "termino": [
+                    ["valor"],
+                    ["identificador"]
+                ],
 
                 "operador_arit": [
                     ["+"],
                     ["-"],
                     ["*"],
-                    ["/"]
+                    ["/"],
                 ],
 
                 "valor": [
                     ["verdadero"],
                     ["falso"],
-                    ["[0-9]+"],  # terminal regex para enteros
-                    ["[0-9]+\\.[0-9]+"],  # terminal regex para decimales
-                    ["[^\\n]+"]  # terminal regex para cadenas con cualquier símbolo excepto salto de línea,  # terminal regex para identificadores o palabras
+                    ["[0-9]+"],  # enteros
+                    ["[0-9]+\\.[0-9]+"],  # decimales
+                    ["\".*?\""]  # cadenas entre comillas
                 ],
 
                 "comentario": [
-                    ["#", "texto_comentario"]
+                    ["#.*?#"]
                 ],
 
                 "identificador": [
-                    ["[a-z][a-zA-Z0-9_]*"]
-                ],
-
-                "texto_comentario": [
-                    ["[a-zA-Z0-9_ ]+"]
+                    ["[a-zA-Z_][a-zA-Z0-9_]*"]
                 ]
             }
 

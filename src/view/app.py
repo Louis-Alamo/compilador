@@ -303,14 +303,14 @@ palabra suma, numero1,numero2;
 entero numero_decimal;
 numero nombre;
 quiza bandera;
-bandera = verdadero
-numero_decimal = 3.14
+bandera = verdadero;
+numero_decimal = 3.14;
 ocultar ("Dame un numero");
-borrar numero1
+borrar numero1;
 ocultar ("Dame otro numero");
-borrar numero2
+borrar numero2;
 # Este es un comentario #
-suma = numero1 - numero2
+suma = numero1 - numero2;
 inicio"""
         self.editor_widget.set_text(codigo_ejemplo)
 
@@ -535,8 +535,9 @@ inicio"""
                 r'\d+\.',  # decimal incompleto (8.)
                 r'[a-zA-Z_][a-zA-Z0-9_]*',  # identificador válido
                 r'\d+',  # entero válido
-                r'(["])',  # comillas para cadenas
-                r'([,.;:(){}\[\]\+\-\*/=<>!?#%&|@^~])',  # delimitadores clásicos
+                r'"[^"]*"',  # ✅ cadena entre comillas
+                r'#.*?#',  # comentario entre almohadillas
+                r'([,.;:(){}\[\]\+\-\*/=<>!?%&#|@^~])',  # delimitadores clásicos
                 r'(\s)'  # espacio en blanco
             ]
 

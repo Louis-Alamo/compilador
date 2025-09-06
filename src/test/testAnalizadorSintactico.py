@@ -25,24 +25,27 @@ suma = numero1 - numero2
 inicio"""
 
 codigo = """fin
-palabra suma, numero1,numero2;
-entero numero_decimal;
+palabra suma, numero1, numero2
 inicio"""
 
 patrones = [
     r'\d+\.[a-zA-Z_][a-zA-Z0-9_]*',  # palabras con punto (ej: 3.14hola)
-    r'\d+[a-zA-Z_][a-zA-Z0-9_]*',  # palabras con número (ej: 8hola)
-    r'\d+(\.\d+){2,}',  # número con más de un punto (ej: 3.14.15)
-    r'\d+\.\d+',  # decimal válido (3.14)
-    r'\d+\.',  # decimal incompleto (8.)
-    r'[a-zA-Z_][a-zA-Z0-9_]*',  # identificador válido
-    r'\d+',  # entero válido
-    r'(["])',  # comillas para cadenas
-    r'([,.;:(){}\[\]\+\-\*/=<>!?#%&|@^~])',  # delimitadores clásicos
-    r'(\s)'  # espacio en blanco
+    r'\d+[a-zA-Z_][a-zA-Z0-9_]*',    # palabras con número (ej: 8hola)
+    r'\d+(\.\d+){2,}',               # número con más de un punto (ej: 3.14.15)
+    r'\d+\.\d+',                     # decimal válido (3.14)
+    r'\d+\.',                        # decimal incompleto (8.)
+    r'[a-zA-Z_][a-zA-Z0-9_]*',       # identificador válido
+    r'\d+',                          # entero válido
+    r'"[^"]*"',                      # ✅ cadena entre comillas
+    r'#.*?#',  # comentario entre almohadillas
+    r'([,.;:(){}\[\]\+\-\*/=<>!?%&#|@^~])',  # delimitadores clásicos
+    r'(\s)'                          # espacio en blanco
 ]
 
+
 lista_tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones)
+#print(lista_tokens)
+
 
 #----------------------------
 
@@ -50,7 +53,7 @@ objeto = AnalizadorSintactico(lista_tokens)
 objeto.analizar()
 lista_estados = objeto.exportar_estados_tabla()
 
-print(lista_estados)
+#print(lista_estados)
 
 
 # Para mostrar la tabla en una ventana gráfica
@@ -65,6 +68,8 @@ dialog.show()
 
 sys.exit(app.exec())
 #objeto.mostrar_estados()
+
+
 
 
 

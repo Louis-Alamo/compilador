@@ -1,9 +1,10 @@
 class Estado:
-    def __init__(self, s: str, i: int,r: str, a: list[str], b: list[str], alternativas: list[int] = None) -> None:
+    def __init__(self, s: str, i: int,r: str, a: list[str], b: list[str], a_copy: list[int],  alternativas: list[int] = None) -> None:
         self.r = r
         self.s = s
         self.i = i
         self.a = a[:]
+        self.a_copy = a_copy[:]
         self.b = b[:]
         self.alternativas = alternativas[:] if alternativas else []
 
@@ -18,5 +19,6 @@ class Estado:
         return (f"R: {RED}{self.r}{RESET}\t"
                 f"S: {GREEN}{self.s}{RESET}\t"
                 f"I: {YELLOW}{self.i}{RESET}\t"
+                f"A_copy: {CYAN}{self.a_copy}{RESET}\t"
                 f"A: {CYAN}{self.a}{RESET}\t"
                 f"B: {MAGENTA}{self.b}{RESET}")

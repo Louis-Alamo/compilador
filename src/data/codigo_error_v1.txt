@@ -1,0 +1,6 @@
+fin
+    palabra suma, numero1,numero2;
+    entero numero_decimal;
+    numero nombre;
+    quiza bandera;
+inicio

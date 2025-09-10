@@ -15,7 +15,7 @@ class LexicalAnalizerForMy:
     def __init__(self, codigo: str):
         self.codigo = codigo
         self.PALABRAS_RESERVADAS = [
-            "fin", "inicio", "palabra", "entero", "numero", "quiza",
+            "fin", "inicio", "palabra", "entero", "decimal", "quiza",
             "ocultar", "borrar", "AND", "OR", "NOT"
         ]
         self.CONSTANTES_ESPECIALES = ["verdadero", "falso"]

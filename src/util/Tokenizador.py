@@ -37,6 +37,27 @@ class Tokenizador:
         return tokens
 
     @staticmethod
+    def obtener_tokens_del_codigo_linea_por_linea(codigo: str, patrones: List[str]) -> List[List[str]]:
+        """
+        Extrae los tokens de un código fuente, agrupados por cada línea.
+
+        Args:
+            codigo (str): Código fuente como string, puede contener saltos de línea.
+            patrones (List[str]): Lista de patrones regex como strings para identificar tokens.
+
+        Returns:
+            List[List[str]]: Lista de listas, donde cada sublista contiene los tokens de una línea.
+        """
+        lineas = codigo.splitlines()
+        tokens_por_linea = []
+
+        for linea in lineas:
+            tokens = Tokenizador.obtener_tokens_del_codigo(linea, patrones)
+            tokens_por_linea.append(tokens)
+
+        return tokens_por_linea
+
+    @staticmethod
     def es_regex_valida(cadena: str) -> bool:
         """
         Verifica si la cadena es una expresión regular válida.

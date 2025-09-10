@@ -14,8 +14,11 @@ patrones = [
     r'\s+'                                # espacios
 ]
 
-codigo = 'inicio x = 3.14; fin'
-tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones)
+codigo = """inicio
+          x = 3.14; 
+          fin"""
 
+#tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones)
+tokens = Tokenizador.obtener_tokens_del_codigo_linea_por_linea(codigo, patrones)
 print(tokens)
 # [['inicio', 'x', '=', '3.14', ';', 'fin']]

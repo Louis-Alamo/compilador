@@ -161,7 +161,7 @@ if not errores:
 
     # --- AQUÍ ESTÁ EL CAMBIO ---
     # 1. Define la ruta exacta que quieres usar.
-    directorio_salida = Path("../data/pdf/")
+    directorio_salida = Path("/data/PDF/")
 
     # 2. Crea la ruta completa (incluyendo carpetas intermedias como 'data').
     #    parents=True es clave para que cree las carpetas anidadas si no existen.

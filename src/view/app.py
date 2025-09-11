@@ -1,18 +1,24 @@
 # view/app.py
 import os
 import sys
+from pathlib import Path
+
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, QTabWidget, QTextEdit,
                              QSplitter, QFileDialog, QMessageBox, QHBoxLayout)
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
 
-from .components.TablaTokens import TablaTokensDialog
-from .components.TablaAnalizisSintactico import TablaAnalizisSintactico
+from src.view.components.PDFBrowserDialog import PDFBrowserDialog
+from src.view.components.TablaTokens import TablaTokensDialog
+from src.view.components.TablaAnalizisSintactico import TablaAnalizisSintactico
 from src.view.components.CodeEditor import CodeEditor
-from .components.FileExplorer import FileExplorer
+from src.view.components.FileExplorer import FileExplorer
 from src.compiler.LexicalAnalizer import LexicalAnalizerForMy
 from src.compiler.AnalizadorSintactico import AnalizadorSintactico
 from src.util.Tokenizador import Tokenizador
+from src.compiler.AnalizadorSemantico import AnalizadorSemantico
+from src.models.Arbol import Arbol
+from src.util.ArbolPDF import ArbolPDF
 
 
 class EditorApp:
@@ -161,7 +167,7 @@ class EditorApp:
         """
 
     def run(self):
-        app = QApplication(sys.argv)
+        self.app = QApplication(sys.argv)
 
         # Crear ventana principal
         main_window = QMainWindow()
@@ -169,7 +175,7 @@ class EditorApp:
         main_window.resize(1200, 800)  # Aumentamos el ancho para el explorador
 
         # Establecer estilo global para la aplicación
-        app.setStyleSheet("""
+        self.app.setStyleSheet("""
         QMainWindow {
             background-color: #ffffff;
         }
@@ -380,7 +386,7 @@ inicio"""
             analisis_menu.addAction(accion)
 
         main_window.show()
-        sys.exit(app.exec())
+        sys.exit(self.app.exec())
 
     def mostrar_tabla_analisis_sintactico(self, lista_estados):
         dialog = TablaAnalizisSintactico(
@@ -400,6 +406,22 @@ inicio"""
         # Conectar señal personalizada (opcional)
         dialog.tokenSeleccionado.connect(lambda token, tipo: print(f"Token seleccionado: {token} ({tipo})"))
         dialog.exec() #<-- No eliminar o vale madre todo el dialog
+
+    # DENTRO DE TU CLASE DE LA VENTANA PRINCIPAL
+
+    def mostrar_arboles_semanticos(self, directorio_salida):
+        try:
+            print(f"Intentando abrir diálogo PDF para: {directorio_salida}")
+            dialogo_arboles = PDFBrowserDialog(pdf_folder_path=directorio_salida, parent=None)
+            print("Diálogo creado exitosamente")
+            dialogo_arboles.exec()
+            print("Diálogo cerrado exitosamente")
+        except Exception as e:
+            print(f"Error en mostrar_arboles_semanticos: {e}")
+            import traceback
+            traceback.print_exc()
+            # Mostrar un mensaje de error al usuario
+            QMessageBox.critical(self, "Error", f"Error al abrir el visualizador de PDFs: {e}")
 
     def abrir_carpeta(self):
         """Abre el diálogo para seleccionar una carpeta en el explorador"""
@@ -543,20 +565,159 @@ inicio"""
 
             lista_tokens = Tokenizador.obtener_tokens_del_codigo(self.editor_widget.get_text(), patrones)
             analizador_sintactico = AnalizadorSintactico(lista_tokens)
+
             bandera = analizador_sintactico.analizar()
             self.sintactico_tab.setPlainText("Analisis sintactico exitoso\n\n")
             lista_estados = analizador_sintactico.exportar_estados_tabla()
             self.mostrar_tabla_analisis_sintactico(lista_estados)
 
-
-
         elif tipo_analisis == "Semántico":
-            # Simular análisis sintáctico
-            self.sintactico_tab.setPlainText("ANÁLISIS SINTÁCTICO COMPLETADO\n\n")
-            self.tab_widget.setCurrentIndex(1)  # Cambiar a pestaña sintáctico
+
+            self.semantico_tab.append("Iniciando análisis semántico (con verificaciones previas)...")
+
+            # --- FASE 1: Verificación Léxica Obligatoria ---
+
+            self.semantico_tab.append("FASE 1: Ejecutando análisis léxico...")
+
+            analizador_lexico = LexicalAnalizerForMy(self.editor_widget.get_text())
+
+            hay_errores_lexicos = analizador_lexico.analizar_codigo()
+
+            if hay_errores_lexicos:
+                self.semantico_tab.append(">> Fallo LÉXICO detectado. Deteniendo análisis semántico.")
+
+                # Le decimos a la UI que muestre los errores léxicos y aborte.
+
+                self.ejecutar_analisis("Léxico")
+
+                # ¡LA CLAVE! Detenemos la ejecución de este método aquí mismo.
+
+                return
+
+            self.semantico_tab.append(">> Análisis léxico exitoso. Procediendo a la Fase 2.")
+
+            # --- FASE 2: Verificación Sintáctica Obligatoria ---
+
+            self.semantico_tab.append("FASE 2: Ejecutando análisis sintáctico...")
+
+            # Reutilizamos los patrones que ya tenías definidos
+
+            patrones = [
+
+                r'\d+\.[a-zA-Z_][a-zA-Z0-9_]*', r'\d+[a-zA-Z_][a-zA-Z0-9_]*',
+
+                r'\d+(\.\d+){2,}', r'\d+\.\d+', r'\d+\.', r'[a-zA-Z_][a-zA-Z0-9_]*',
+
+                r'\d+', r'"[^"]*"', r'#.*?#', r'([,.;:(){}\[\]\+\-\*/=<>!?%&#|@^~])', r'(\s)'
+
+            ]
+
+            lista_tokens = Tokenizador.obtener_tokens_del_codigo(self.editor_widget.get_text(), patrones)
+
+            analizador_sintactico = AnalizadorSintactico(lista_tokens)
+
+            analisis_sintactico_exitoso = analizador_sintactico.analizar()
+
+            if not analisis_sintactico_exitoso:
+                self.semantico_tab.append(">> Fallo SINTÁCTICO detectado. Deteniendo análisis semántico.")
+
+                # Le decimos a la UI que muestre los errores sintácticos y aborte.
+
+                self.ejecutar_analisis("Sintáctico")
+
+                # ¡LA CLAVE! Detenemos la ejecución de este método aquí mismo.
+
+                return
+
+            self.semantico_tab.append(">> Análisis sintáctico exitoso. Procediendo a la Fase 3.")
+
+            # --- FASE 3: Ejecución del Análisis Semántico (Solo si todo lo anterior pasó) ---
+
+            self.semantico_tab.append("FASE 3: Ejecutando análisis semántico...")
 
             self.semantico_tab.setPlainText("ANÁLISIS SEMÁNTICO COMPLETADO\n\n")
-            self.tab_widget.setCurrentIndex(2)  # Cambiar a pestaña semántico
+
+            self.tab_widget.setCurrentIndex(2)
+
+            codigo_linea_por_linea = Tokenizador.obtener_tokens_del_codigo_linea_por_linea(self.editor_widget.get_text(), patrones)
+
+            analizador_semantico = AnalizadorSemantico(codigo_linea_por_linea)
+
+            analizador_semantico.analizar_codigo()
+
+            errores_semanticos = analizador_semantico.obtener_errores()
+
+            if errores_semanticos:
+
+                # Si hay errores semánticos, los mostramos.
+
+                self.semantico_tab.append(f">> Errores semánticos encontrados")
+
+                errores_formateados = self.formatear_errores(errores_semanticos)
+
+                for error in errores_formateados:
+                    self.semantico_tab.append(error)
+
+
+            else:
+
+                # Si no hay errores semánticos, construimos y mostramos los árboles.
+
+                self.semantico_tab.append(">> Análisis semántico sin errores. Generando árboles...")
+
+                operaciones = analizador_semantico.obtener_operaciones_aritmeticas()
+
+                # Si no hay operaciones, no hay árboles que generar.
+
+                if not operaciones:
+                    self.semantico_tab.append("\nNo se encontraron operaciones aritméticas para generar árboles.")
+
+                    return
+
+                constructor_arbol = Arbol(analizador_semantico.tabla)
+
+                directorio_salida = Path("./data/PDF/")
+
+                directorio_salida.mkdir(parents=True, exist_ok=True)
+
+                # --- NUEVO: Limpieza de PDFs antiguos ---
+                self.semantico_tab.append(f"\nLimpiando PDFs antiguos en '{directorio_salida}'...")
+                pdfs_eliminados = 0
+                try:
+                    for pdf_file in directorio_salida.glob("*.pdf"):
+                        pdf_file.unlink() # El método de pathlib para borrar un archivo
+                        pdfs_eliminados += 1
+                    self.semantico_tab.append(f"Se eliminaron {pdfs_eliminados} archivo(s) PDF.")
+                except Exception as e:
+                    self.semantico_tab.append(f"ADVERTENCIA: No se pudo limpiar la carpeta. Error: {e}")
+                # --- FIN DEL BLOQUE DE LIMPIEZA ---
+
+                self.semantico_tab.append(f"\nGenerando nuevos PDFs de los Árboles...")
+                self.semantico_tab.append(f"\nGenerando PDFs de los Árboles en la carpeta '{directorio_salida}'...")
+
+                for i, op in enumerate(operaciones):
+
+                    self.semantico_tab.append(f"Procesando operación: {' '.join(op)}")
+
+                    arbol_raiz = constructor_arbol.construir(op)
+
+                    if arbol_raiz:
+                        pdf_visualizer = ArbolPDF(arbol_raiz)
+
+                        ruta_del_archivo = directorio_salida / f'arbol_operacion_{i + 1}'
+
+                        pdf_visualizer.generar_pdf(ruta_del_archivo)
+
+                # Finalmente, mostramos el diálogo con los PDFs generados.
+
+                self.mostrar_arboles_semanticos(directorio_salida)
+
+    def formatear_errores(self, lista_errores):
+        resultado = []
+        for dic in lista_errores:
+            for clave, valor in dic.items():
+                resultado.append(f"-->{clave}: {valor}")
+        return resultado
 
     def on_tab_changed(self, index):
         """Se ejecuta cuando se cambia de pestaña"""

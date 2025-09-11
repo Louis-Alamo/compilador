@@ -255,7 +255,7 @@ class EditorApp:
         self.semantico_tab.setPlainText("Análisis semántico no ejecutado")
         self.semantico_tab.setStyleSheet(self.get_text_edit_style())
 
-        # Agregar pestañas
+        # Agregar pestañas (sin la de Mostrar tabla)
         self.tab_widget.addTab(self.lexico_tab, "LÉXICO")
         self.tab_widget.addTab(self.sintactico_tab, "SINTÁCTICO")
         self.tab_widget.addTab(self.semantico_tab, "SEMÁNTICO")
@@ -378,6 +378,13 @@ inicio"""
             accion = QAction(fase, main_window)
             accion.triggered.connect(lambda checked, f=fase: print(f"Ejecutando análisis: {f}"))
             analisis_menu.addAction(accion)
+
+        # Menú Mostrar tabla
+        mostrar_tabla_menu = menu_bar.addMenu("Mostrar tabla")
+        mostrar_tabla_action = QAction("Mostrar tabla", main_window)
+        mostrar_tabla_action.setShortcut("Ctrl+T")
+        mostrar_tabla_action.triggered.connect(self.mostrar_imagen_tabla)
+        mostrar_tabla_menu.addAction(mostrar_tabla_action)
 
         main_window.show()
         sys.exit(app.exec())
@@ -563,3 +570,20 @@ inicio"""
         tab_names = ["LÉXICO", "SINTÁCTICO", "SEMÁNTICO"]
         if index < len(tab_names):
             print(f"Pestaña seleccionada: {tab_names[index]}")
+
+    def mostrar_imagen_tabla(self):
+        """Muestra una imagen en una ventana modal al hacer clic en 'Mostrar tabla'"""
+        from PyQt6.QtWidgets import QDialog, QLabel, QVBoxLayout
+        from PyQt6.QtGui import QPixmap
+        dialog = QDialog()
+        dialog.setWindowTitle("Tabla")
+        layout = QVBoxLayout(dialog)
+        label = QLabel()
+        # Cambia la ruta de la imagen según tu proyecto
+        pixmap = QPixmap("data/tabla.png")
+        label.setPixmap(pixmap)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
+        dialog.setLayout(layout)
+        dialog.resize(600, 800)
+        dialog.exec()

@@ -15,7 +15,8 @@ patrones = [
 ]
 
 codigo = """inicio
-          x = 3.14; 
+          x = 3.14;
+          # Comentario rico # 
           fin"""
 
 #tokens = Tokenizador.obtener_tokens_del_codigo(codigo, patrones)

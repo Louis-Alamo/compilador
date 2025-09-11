@@ -52,7 +52,7 @@ class Gramatica:
 
                 "tipo_dato": [
                     ["entero"],
-                    ["numero"],
+                    ["decimal"],
                     ["palabra"],
                     ["quiza"]
                 ],

@@ -23,9 +23,7 @@ class Gramatica:
 
         if gramatica:
             self.lista_tokens = gramatica
-
         else:
-
             self.gramatica = {
                 "programa": [
                     ["fin", "lista_instrucciones", "inicio"]

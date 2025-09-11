@@ -28,6 +28,12 @@ class TablaSimbolos:
             return simbolo["tipo"]
         return None
 
+    def obtener_valor(self, nombre):
+        simbolo = self.tabla.get(nombre)
+        if simbolo:
+            return simbolo["valor"]
+        return None
+
     def __str__(self):
         # ... (tu método para imprimir bonito no cambia) ...
         if not self.tabla:

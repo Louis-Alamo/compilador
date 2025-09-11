@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from src.compiler.AnalizadorSemantico import AnalizadorSemantico
+from src.models.Arbol import Arbol
+from src.util.ArbolPDF import ArbolPDF
 from src.util.Consola import Consola
 
 codigo_prueba_1 = [
@@ -121,16 +125,66 @@ codigo_prueba_5 = [
 
     ["quiza", "numero_pi" "=", '"Hola Mundo"', ";"]
 ]
-analizador = AnalizadorSemantico(codigo_prueba_4)
+
+codigo_prueba_6 = [
+    # 1. Declaraciones iniciales
+    ["decimal", "intentos_login", ";"],
+    ["palabra", "usuario_actual", ";"],
+    ["quiza", "acceso_concedido", "=", "false", ";"],
+    ["entero", "ID_SESION", ";"], # Nótese que está en mayúsculas
+
+    # 2. Asignación correcta
+    ["usuario_actual", "=", '"admin"', ";"],
+
+
+
+    # 4. Operación válida con literales y variables (debe ser extraída)
+    ["intentos_login", "=", "intentos_login", "+", "1", "*", "5", "-", "2", "/", "4", "+", "3", "*", "7", "-", "2", ";"],
+    ["intentos_login", "=", "intentos_login", "+", "1", "*", "5", ";"]
+
+]
+
+
+analizador = AnalizadorSemantico(codigo_prueba_6)
 analizador.analizar_codigo()
 
 print("Tabla de símbolos:", analizador.tabla)
-
-Consola.imprimir_errores(analizador.obtener_errores(), "Semantico")
-
 print("operaciones Aritmeticas")
 for operacion in analizador.operaciones_aritmeticas:
     print(operacion)
+
+
+errores = analizador.obtener_errores()
+if not errores:
+    operaciones = analizador.obtener_operaciones_aritmeticas()
+    constructor_arbol = Arbol(analizador.tabla)
+
+    # --- AQUÍ ESTÁ EL CAMBIO ---
+    # 1. Define la ruta exacta que quieres usar.
+    directorio_salida = Path("../data/pdf/")
+
+    # 2. Crea la ruta completa (incluyendo carpetas intermedias como 'data').
+    #    parents=True es clave para que cree las carpetas anidadas si no existen.
+    directorio_salida.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n--- Generando PDFs de los Árboles en la carpeta '{directorio_salida}' ---")
+
+    for i, op in enumerate(operaciones):
+        print(f"Procesando operación: {' '.join(op)}")
+
+        arbol_raiz = constructor_arbol.construir(op)
+
+        if arbol_raiz:
+            pdf_visualizer = ArbolPDF(arbol_raiz)
+
+            # Construye la ruta final del archivo
+            ruta_del_archivo = directorio_salida / f'arbol_operacion_{i + 1}'
+
+            # Llama a la función con la ruta completa
+            pdf_visualizer.generar_pdf(ruta_del_archivo)
+#Consola.imprimir_errores(analizador.obtener_errores(), "Semantico")
+
+
 
 
 

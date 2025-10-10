@@ -1,29 +1,90 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QFrame, QLabel, QWidget)
+                             QPushButton, QFrame, QLabel, QWidget,
+                             QTableWidget, QTableWidgetItem, QScrollArea)
 from PyQt6.QtCore import Qt
-from typing import Optional, List
+from typing import List
+
+from src.util.Cuadruplos import ParserCuadruplos
+from src.util.Triplos import ParserTriplos
 
 
 class VentanaResultados(QDialog):
-    def __init__(self,
-                 notacion_polaca: Optional[List] = None,
-                 codigo_p: Optional[List] = None,
-                 triplos: Optional[List] = None,
-                 cuadruplos: Optional[List] = None,
-                 parent=None):
+    def __init__(self, expresiones: List[str], parent=None):
         super().__init__(parent)
 
-        # Almacenar las listas
-        self.notacion_polaca = notacion_polaca or []
-        self.codigo_p = codigo_p or []
-        self.triplos = triplos or []
-        self.cuadruplos = cuadruplos or []
+        # Almacenar las expresiones
+        self.expresiones = expresiones
 
         self.inicializar_ui()
+
+    def get_estilos(self):
+        """Retorna todos los estilos CSS de la aplicación"""
+        return {
+            'botones': """
+                QPushButton {
+                    padding: 15px;
+                    font-size: 14px;
+                    text-align: left;
+                    border: 1px solid #ccc;
+                    background-color: #f0f0f0;
+                    border-radius: 5px;
+                }
+                QPushButton:hover {
+                    background-color: #e0e0e0;
+                }
+                QPushButton:pressed {
+                    background-color: #d0d0d0;
+                }
+            """,
+            'frame': """
+                QFrame {
+                    border: 1px solid #ccc;
+                    border-radius: 5px;
+                    background-color: white;
+                }
+            """,
+            'titulo': """
+                QLabel {
+                    font-size: 18px;
+                    font-weight: bold;
+                    padding: 20px;
+                    color: #666;
+                }
+            """,
+            'expresion': """
+                QLabel {
+                    font-size: 16px;
+                    font-weight: bold;
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 5px;
+                    color: #212529;
+                }
+            """,
+            'tabla': """
+                QTableWidget {
+                    border: 1px solid #dee2e6;
+                    gridline-color: #dee2e6;
+                    background-color: white;
+                }
+                QTableWidget::item {
+                    padding: 5px;
+                }
+                QHeaderView::section {
+                    background-color: #e9ecef;
+                    padding: 8px;
+                    border: 1px solid #dee2e6;
+                    font-weight: bold;
+                }
+            """
+        }
 
     def inicializar_ui(self):
         self.setWindowTitle("Resultados de Compilación")
         self.setMinimumSize(800, 500)
+
+        estilos = self.get_estilos()
 
         # Layout principal horizontal
         layout_principal = QHBoxLayout()
@@ -39,34 +100,17 @@ class VentanaResultados(QDialog):
         self.btn_triplos = QPushButton("Triplos")
         self.btn_cuadruplos = QPushButton("Cuádruplos")
 
-        # Estilo para los botones
-        estilo_boton = """
-            QPushButton {
-                padding: 15px;
-                font-size: 14px;
-                text-align: left;
-                border: 1px solid #ccc;
-                background-color: #f0f0f0;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
-            QPushButton:pressed {
-                background-color: #d0d0d0;
-            }
-        """
-
-        self.btn_notacion.setStyleSheet(estilo_boton)
-        self.btn_codigo_p.setStyleSheet(estilo_boton)
-        self.btn_triplos.setStyleSheet(estilo_boton)
-        self.btn_cuadruplos.setStyleSheet(estilo_boton)
+        # Aplicar estilos
+        self.btn_notacion.setStyleSheet(estilos['botones'])
+        self.btn_codigo_p.setStyleSheet(estilos['botones'])
+        self.btn_triplos.setStyleSheet(estilos['botones'])
+        self.btn_cuadruplos.setStyleSheet(estilos['botones'])
 
         # Conectar señales
-        self.btn_notacion.clicked.connect(lambda: self.mostrar_contenido("Notación Polaca"))
-        self.btn_codigo_p.clicked.connect(lambda: self.mostrar_contenido("Código P"))
-        self.btn_triplos.clicked.connect(lambda: self.mostrar_contenido("Triplos"))
-        self.btn_cuadruplos.clicked.connect(lambda: self.mostrar_contenido("Cuádruplos"))
+        self.btn_notacion.clicked.connect(self.mostrar_notacion_polaca)
+        self.btn_codigo_p.clicked.connect(self.mostrar_codigo_p)
+        self.btn_triplos.clicked.connect(self.mostrar_triplos)
+        self.btn_cuadruplos.clicked.connect(self.mostrar_cuadruplos)
 
         # Agregar botones al layout
         layout_botones.addWidget(self.btn_notacion)
@@ -81,32 +125,14 @@ class VentanaResultados(QDialog):
         # Panel derecho (contenedor de contenido)
         self.frame_contenido = QFrame()
         self.frame_contenido.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_contenido.setStyleSheet("""
-            QFrame {
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                background-color: white;
-            }
-        """)
+        self.frame_contenido.setStyleSheet(estilos['frame'])
 
         # Layout para el frame de contenido
         self.layout_contenido = QVBoxLayout()
-        self.layout_contenido.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        # Label inicial
-        self.label_titulo = QLabel("Seleccione una opción del menú")
-        self.label_titulo.setStyleSheet("""
-            QLabel {
-                font-size: 18px;
-                font-weight: bold;
-                padding: 20px;
-                color: #666;
-            }
-        """)
-        self.label_titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.layout_contenido.addWidget(self.label_titulo)
         self.frame_contenido.setLayout(self.layout_contenido)
+
+        # Mensaje inicial
+        self.mostrar_mensaje_inicial()
 
         # Agregar paneles al layout principal
         layout_principal.addWidget(panel_botones)
@@ -114,10 +140,202 @@ class VentanaResultados(QDialog):
 
         self.setLayout(layout_principal)
 
-    def mostrar_contenido(self, opcion: str):
-        """Actualiza el contenido del frame según la opción seleccionada"""
-        self.label_titulo.setText(f"Has seleccionado: {opcion}")
-        self.label_titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    def limpiar_contenido(self):
+        """Limpia todo el contenido del frame"""
+        while self.layout_contenido.count():
+            item = self.layout_contenido.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def mostrar_mensaje_inicial(self):
+        """Muestra el mensaje inicial"""
+        self.limpiar_contenido()
+        estilos = self.get_estilos()
+
+        label = QLabel("Seleccione una opción del menú")
+        label.setStyleSheet(estilos['titulo'])
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.layout_contenido.addWidget(label)
+        self.layout_contenido.addStretch()
+
+    def mostrar_notacion_polaca(self):
+        """Muestra la notación polaca"""
+        self.limpiar_contenido()
+        estilos = self.get_estilos()
+
+        label = QLabel("Notación Polaca")
+        label.setStyleSheet(estilos['titulo'])
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.layout_contenido.addWidget(label)
+        self.layout_contenido.addStretch()
+
+        # Aquí se implementará la lógica con la clase correspondiente
+
+    def mostrar_codigo_p(self):
+        """Muestra el código P"""
+        self.limpiar_contenido()
+        estilos = self.get_estilos()
+
+        label = QLabel("Código P")
+        label.setStyleSheet(estilos['titulo'])
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.layout_contenido.addWidget(label)
+        self.layout_contenido.addStretch()
+
+        # Aquí se implementará la lógica con la clase correspondiente
+
+    def mostrar_triplos(self):
+        """Muestra los triplos para cada expresión"""
+        self.limpiar_contenido()
+        estilos = self.get_estilos()
+
+        # Crear área de scroll
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("QScrollArea { border: none; }")
+
+        # Widget contenedor para todas las tablas
+        contenedor = QWidget()
+        layout_scroll = QVBoxLayout()
+
+        # Importar la clase ParserTriplos (asumiendo que existe)
+        try:
+            parser = ParserTriplos()
+
+            # Procesar cada expresión
+            for expresion in self.expresiones:
+                # Obtener los pasos
+                pasos = parser.mostrar_pasos(expresion)
+
+                # Label con la expresión
+                label_expr = QLabel(f"{expresion}")
+                label_expr.setStyleSheet(estilos['expresion'])
+                label_expr.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                layout_scroll.addWidget(label_expr)
+
+                # Crear tabla
+                tabla = QTableWidget()
+                tabla.setStyleSheet(estilos['tabla'])
+                tabla.setColumnCount(4)
+                tabla.setRowCount(len(pasos))
+
+                # Encabezados
+                tabla.setHorizontalHeaderLabels(['Operador', 'Operando 1', 'Operando 2', 'Resultado'])
+
+                # Llenar la tabla
+                for i, paso in enumerate(pasos):
+                    for j, valor in enumerate(paso):
+                        item = QTableWidgetItem(str(valor))
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                        tabla.setItem(i, j, item)
+
+                # Ajustar tamaño de columnas al contenido
+                tabla.resizeColumnsToContents()
+
+                # Asegurar que la tabla se muestre completa sin scroll interno
+                tabla.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                tabla.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+                # Calcular y establecer la altura exacta de la tabla
+                altura = tabla.horizontalHeader().height()
+                for i in range(tabla.rowCount()):
+                    altura += tabla.rowHeight(i)
+                altura += 2  # Bordes
+                tabla.setFixedHeight(altura)
+
+                layout_scroll.addWidget(tabla)
+                layout_scroll.addSpacing(20)
+
+        except ImportError:
+            # Si no existe la clase, mostrar mensaje
+            label_error = QLabel("Error: No se pudo importar ParserTriplos")
+            label_error.setStyleSheet(estilos['titulo'])
+            label_error.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout_scroll.addWidget(label_error)
+
+        layout_scroll.addStretch()
+        contenedor.setLayout(layout_scroll)
+        scroll_area.setWidget(contenedor)
+
+        self.layout_contenido.addWidget(scroll_area)
+
+    def mostrar_cuadruplos(self):
+        """Muestra los cuádruplos para cada expresión"""
+        self.limpiar_contenido()
+        estilos = self.get_estilos()
+
+        # Crear área de scroll
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("QScrollArea { border: none; }")
+
+        # Widget contenedor para todas las tablas
+        contenedor = QWidget()
+        layout_scroll = QVBoxLayout()
+
+        # Importar la clase ParserCuadruplos
+        try:
+            parser = ParserCuadruplos()
+
+            # Procesar cada expresión
+            for expresion in self.expresiones:
+                # Obtener los pasos
+                pasos = parser.mostrar_pasos(expresion)
+
+                # Label con la expresión
+                label_expr = QLabel(f"{expresion}")
+                label_expr.setStyleSheet(estilos['expresion'])
+                label_expr.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                layout_scroll.addWidget(label_expr)
+
+                # Crear tabla
+                tabla = QTableWidget()
+                tabla.setStyleSheet(estilos['tabla'])
+                tabla.setColumnCount(4)
+                tabla.setRowCount(len(pasos))
+
+                # Encabezados
+                tabla.setHorizontalHeaderLabels(['Operador', 'Operando 1', 'Operando 2', 'Resultado'])
+
+                # Llenar la tabla
+                for i, paso in enumerate(pasos):
+                    for j, valor in enumerate(paso):
+                        item = QTableWidgetItem(str(valor))
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                        tabla.setItem(i, j, item)
+
+                # Ajustar tamaño de columnas al contenido
+                tabla.resizeColumnsToContents()
+
+                # Asegurar que la tabla se muestre completa sin scroll interno
+                tabla.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                tabla.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+                # Calcular y establecer la altura exacta de la tabla
+                altura = tabla.horizontalHeader().height()
+                for i in range(tabla.rowCount()):
+                    altura += tabla.rowHeight(i)
+                altura += 2  # Bordes
+                tabla.setFixedHeight(altura)
+
+                layout_scroll.addWidget(tabla)
+                layout_scroll.addSpacing(20)
+
+        except ImportError:
+            # Si no existe la clase, mostrar mensaje
+            label_error = QLabel("Error: No se pudo importar ParserCuadruplos")
+            label_error.setStyleSheet(estilos['titulo'])
+            label_error.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout_scroll.addWidget(label_error)
+
+        layout_scroll.addStretch()
+        contenedor.setLayout(layout_scroll)
+        scroll_area.setWidget(contenedor)
+
+        self.layout_contenido.addWidget(scroll_area)
 
 
 # Ejemplo de uso
@@ -127,12 +345,14 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
 
-    ventana = VentanaResultados(
-        notacion_polaca=["elem1", "elem2"],
-        codigo_p=[],
-        triplos=["triplo1"],
-        cuadruplos=[]
-    )
+    # Crear ventana con lista de expresiones
+    expresiones = [
+        "x=8+4*5/3+20/2-4",
+        "y=10*2+5",
+        "z=a+b*c"
+    ]
 
+    ventana = VentanaResultados(expresiones)
     ventana.exec()
+
     sys.exit(app.exec())

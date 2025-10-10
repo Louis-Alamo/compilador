@@ -1,16 +1,14 @@
 fin
-    palabra suma, numero1,numero2;
-    entero numero_decimal;
-    numero nombre;
-    quiza bandera;
-    bandera = verdadero;
-    numero_decimal = 3.14;
-    ocultar ("Dame un numero");
-    borrar numero1;
-    ocultar ("Dame otro numero");
-    borrar numero2;
-    # Este es un comentario #
-    suma = numero1 - numero2;
-    palabra suma, numero1,numero2;
-    palabra suma, numero1,numero2;
+entero a, b, c, d;
+decimal x,y,z;
+palabra nombre;
+palabra sg;
+ocultar("Dame un valor numerico: ");
+borrar a;
+ocultar("Dame valor cadena: ");
+borrar nombre;
+a = 23;
+b = 12;
+x = 14.3;
+y = 13 + 14.5;
 inicio

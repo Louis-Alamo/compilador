@@ -39,7 +39,8 @@ class ParserTriplos:
         # Asignación final
         self.pasos.append(['=', resultado, "-", variable])
         
-        return self.pasos
+        # Convertir a formato de triplos con índices
+        return self._convertir_a_triplos()
     
     def _tokenizar(self, expr):
         """Convierte la expresión en lista de tokens"""
@@ -118,9 +119,37 @@ class ParserTriplos:
             return f"[{valor[3:]}]"
         return valor
     
+    def _convertir_a_triplos(self):
+        """Convierte los pasos a formato de triplos [[indice], op, arg1, arg2]"""
+        triplos = []
+        
+        for i, paso in enumerate(self.pasos):
+            op, arg1, arg2, dest = paso
+            if op == '=':
+                # Para asignación: [[indice], '=', 'x', '[indice_fuente]']
+                idx = self._buscar_indice(arg1, self.pasos[:i])
+                triplos.append([f"[{i}]", op, dest, f"[{idx}]"])
+            else:
+                # Para operaciones: [[indice], op, arg1_convertido, arg2_convertido]
+                arg1_mostrar = self._convertir_a_indice(arg1)
+                arg2_mostrar = self._convertir_a_indice(arg2)
+                triplos.append([f"[{i}]", op, arg1_mostrar, arg2_mostrar])
+        
+        return triplos
+    
+    def _buscar_indice(self, valor, pasos):
+        """Busca el índice donde se generó un temporal"""
+        for i, paso in enumerate(pasos):
+            if paso[3] == valor:
+                return i
+        return None
+    
     def mostrar_pasos(self, expresion):
         """Muestra los pasos en formato legible (TRIPLOS)"""
-        pasos = self.parsear(expresion)
+        triplos = self.parsear(expresion)
+        
+        print(triplos)
+        print()
         
         if '=' in expresion:
             var, expr = expresion.split('=', 1)
@@ -129,31 +158,19 @@ class ParserTriplos:
             print(f"Expresión: {expresion}\n")
         
         print("TRIPLOS:")
-        for i, paso in enumerate(pasos):
-            op, arg1, arg2, dest = paso
-            if op == '=':
-                idx = self._buscar_indice(arg1, pasos[:i])
-                print(f"[{i}] {op} {dest}        [{idx}]")
+        for triplo in triplos:
+            if triplo[1] == '=':
+                print(f"{triplo[0]} {triplo[1]} {triplo[2]}        {triplo[3]}")
             else:
-                # Convertir temporales a índices
-                arg1_mostrar = self._convertir_a_indice(arg1)
-                arg2_mostrar = self._convertir_a_indice(arg2)
-                print(f"[{i}] {op} {arg1_mostrar} {arg2_mostrar}")
+                print(f"{triplo[0]} {triplo[1]} {triplo[2]} {triplo[3]}")
         
-        return pasos
-    
-    def _buscar_indice(self, valor, pasos):
-        """Busca el índice donde se generó un temporal"""
-        for i, paso in enumerate(pasos):
-            if paso[3] == valor:
-                return i
-        return None
+        return triplos
 
 
 # Ejemplo de uso
 if __name__ == "__main__":
     parser = ParserTriplos()
-    
+
     # Casos de prueba
     expresiones = [
         "x=8+4*5/3+20/2-4",

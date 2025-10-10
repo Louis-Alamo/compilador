@@ -142,3 +142,4 @@ if __name__ == "__main__":
         for i, paso in enumerate(pasos):
             print(f"{paso}")
         print()
+    print(pasos)

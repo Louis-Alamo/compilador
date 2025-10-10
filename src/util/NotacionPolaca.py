@@ -1,4 +1,20 @@
-from src.models.PilasDeEvaluacion import EstadoDeConversion
+class EstadoDeConversion:
+    def __init__(self):
+        self.resultado = []
+        self.operadores = []
+        self.historial = []
+
+    def registrar_paso(self, token, comentario):
+        """
+        CRÍTICO: Hacer COPIAS de las listas, no guardar referencias
+        """
+        paso = {
+            'token_procesado': token,
+            'comentario': comentario,
+            'lista_resultado': self.resultado.copy(),  # ← COPY aquí
+            'pila_operadores': self.operadores.copy()  # ← COPY aquí
+        }
+        self.historial.append(paso)
 
 
 class ConvertidorPostfijo:
@@ -45,23 +61,23 @@ class ConvertidorPostfijo:
         return " ".join(self.estado.resultado)
 
 
-
 # --- Ejemplo de Uso ---
 expresion_a_convertir = "3+4*8-3"
 convertidor = ConvertidorPostfijo(expresion_a_convertir)
 resultado_final = convertidor.convertir()
 
-# (El código para imprimir el historial es similar, solo cambiando los nombres de las claves)
 historial = convertidor.estado.historial
 
 print(f"Convirtiendo la expresión: '{expresion_a_convertir}' a Postfija (RPN)\n")
+print("=" * 60)
 print("--- Historial Paso a Paso --- 📋\n")
 
 for i, paso in enumerate(historial):
-    print(f"Paso {i+1}:")
+    print(f"Paso {i + 1}:")
     print(f"  > Token: '{paso['token_procesado']}' ({paso['comentario']})")
     print(f"  > Resultado: {paso['lista_resultado']}")
     print(f"  > Pila Ops:  {paso['pila_operadores']}\n")
 
+print("=" * 60)
 print("--- Proceso Finalizado ---")
 print(f"\n✅ Notación Postfija (RPN): {resultado_final}")

@@ -245,28 +245,8 @@ def main():
 
 if __name__ == "__main__":
     # Ejecutar casos de prueba
-    print("=== CASOS DE PRUEBA ===\n")
-
-    casos = [
-        "(29 - ((4 * 3) * 5))",
-        "(((29 - 4) * 2) - 5)",
-        "((4 * (2 * 5)) - 29)",
-        "x = (a + 5) / (100 - (b * 2))"
-    ]
-
     generador = GeneradorCodigoP()
+    instrucciones = generador.generar("(29 - ((4 * 3) * 5))")
+    print(instrucciones)
 
-    for i, caso in enumerate(casos, 1):
-        print(f"Caso {i}: {caso}")
-        try:
-            instrucciones = generador.generar(caso)
-            for instr in instrucciones:
-                print(instr)
-        except Exception as e:
-            print(f"Error: {e}")
-        print()
-
-    print("\n" + "=" * 50 + "\n")
-
-    # Modo interactivo
     main()

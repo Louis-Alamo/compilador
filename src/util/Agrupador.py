@@ -1,5 +1,6 @@
 import re
 
+
 class Agrupador:
     """
     Clase de utilidad para agrupar explícitamente expresiones matemáticas
@@ -11,10 +12,8 @@ class Agrupador:
     def _aplicar_operador(operadores, valores):
         """Función interna para ensamblar una sub-expresión."""
         op = operadores.pop()
-        # Se saca primero el derecho, luego el izquierdo
         der = valores.pop()
         izq = valores.pop()
-        # Se agrupa y se vuelve a meter a la pila de valores como una sola unidad
         valores.append(f"({izq} {op} {der})")
 
     @staticmethod
@@ -22,18 +21,37 @@ class Agrupador:
         """
         Toma una expresión infija y devuelve la misma expresión pero
         con paréntesis que hacen explícita la jerarquía de operaciones.
-        Ej: "10 + 5 * 2" -> "(10 + (5 * 2))"
+        Maneja asignaciones iniciales como 'x = ...'.
+        Ej: "x = 10 + 5 * 2" -> "x = (10 + (5 * 2))"
         """
-        # Usamos la misma lógica de tokenización
-        tokens = re.findall(r'[a-zA-Z_]\w*|\d+|[=\+\-\*\/\(\)]', expresion.replace(" ", ""))
+        prefijo_asignacion = ""
+        expresion_a_procesar = expresion
+
+        # --- INICIO DE LA MODIFICACIÓN ---
+
+        # 1. Detectar si es una asignación
+        if '=' in expresion:
+            partes = expresion.split('=', 1)
+            # Validamos que la parte izquierda sea un nombre de variable válido
+            variable_potencial = partes[0].strip()
+            if variable_potencial.isidentifier():
+                # 2. Guardamos el prefijo y nos quedamos con la expresión matemática
+                prefijo_asignacion = f"{variable_potencial} = "
+                expresion_a_procesar = partes[1]
+
+        # --- FIN DE LA MODIFICACIÓN ---
+
+        # El resto del código ahora trabaja con 'expresion_a_procesar'
+        tokens = re.findall(r'[a-zA-Z_]\w*|\d+|[\+\-\*\/\(\)]', expresion_a_procesar.replace(" ", ""))
         if not tokens:
-            return ""
+            # Si no hay nada que procesar (ej. "x = "), devolvemos el prefijo
+            return prefijo_asignacion.strip()
 
         valores = []
         operadores = []
 
         for token in tokens:
-            if token.isdigit() or token.isalpha():
+            if token.isdigit() or (token.isalpha() and token.isidentifier()):
                 valores.append(token)
             elif token == '(':
                 operadores.append(token)
@@ -41,16 +59,21 @@ class Agrupador:
                 while operadores and operadores[-1] != '(':
                     Agrupador._aplicar_operador(operadores, valores)
                 if not operadores: raise ValueError("Paréntesis no balanceados")
-                operadores.pop() # Sacar el '('
-            else: # Es un operador
+                operadores.pop()
+            else:
                 while (operadores and operadores[-1] != '(' and
                        Agrupador._precedencia.get(operadores[-1], 0) >= Agrupador._precedencia.get(token, 0)):
                     Agrupador._aplicar_operador(operadores, valores)
                 operadores.append(token)
 
-        # Aplicar los operadores restantes
         while operadores:
             Agrupador._aplicar_operador(operadores, valores)
 
-        # Al final, la pila de valores debe tener un solo elemento
-        return valores[0]
+        if not valores:
+            return prefijo_asignacion.strip()
+
+        # 3. Al final, unimos el prefijo guardado con el resultado
+        return prefijo_asignacion + valores[0]
+
+
+

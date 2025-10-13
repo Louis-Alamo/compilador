@@ -1,5 +1,7 @@
 import re
 
+from src.util.Agrupador import Agrupador
+
 
 class GeneradorCodigoP:
     def __init__(self):
@@ -7,6 +9,8 @@ class GeneradorCodigoP:
 
     def generar(self, expresion):
         """Genera código P a partir de una expresión aritmética"""
+
+        expresion = Agrupador.agrupar(expresion)
         self.instrucciones = []
         expresion = expresion.strip()
 
@@ -241,12 +245,3 @@ def main():
             print(f"Error: {e}\n")
         except Exception as e:
             print(f"Error inesperado: {e}\n")
-
-
-if __name__ == "__main__":
-    # Ejecutar casos de prueba
-    generador = GeneradorCodigoP()
-    instrucciones = generador.generar("(29 - ((4 * 3) * 5))")
-    print(instrucciones)
-
-    main()

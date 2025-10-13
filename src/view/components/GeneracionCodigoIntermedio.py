@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
 from PyQt6.QtCore import Qt
 from typing import List
 
+from src.util.CodigoP import GeneradorCodigoP
 from src.util.Cuadruplos import ParserCuadruplos
 from src.util.Triplos import ParserTriplos
 
@@ -174,18 +175,75 @@ class VentanaResultados(QDialog):
         # Aquí se implementará la lógica con la clase correspondiente
 
     def mostrar_codigo_p(self):
-        """Muestra el código P"""
+        """Muestra el código P para cada expresión"""
         self.limpiar_contenido()
         estilos = self.get_estilos()
 
-        label = QLabel("Código P")
-        label.setStyleSheet(estilos['titulo'])
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Crear área de scroll
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("QScrollArea { border: none; }")
 
-        self.layout_contenido.addWidget(label)
-        self.layout_contenido.addStretch()
+        # Widget contenedor para todas las expresiones
+        contenedor = QWidget()
+        layout_scroll = QVBoxLayout()
 
-        # Aquí se implementará la lógica con la clase correspondiente
+        # Importar la clase GeneradorCodigoP
+        try:
+            generador = GeneradorCodigoP()
+
+            # Procesar cada expresión
+            for expresion in self.expresiones:
+                # Obtener las instrucciones
+                instrucciones = generador.generar(expresion)
+
+                # Label con la expresión
+                label_expr = QLabel(f"{expresion}")
+                label_expr.setStyleSheet(estilos['expresion'])
+                label_expr.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                layout_scroll.addWidget(label_expr)
+
+                # Frame para el código
+                frame_codigo = QFrame()
+                frame_codigo.setStyleSheet("""
+                    QFrame {
+                        border: 1px solid #dee2e6;
+                        border-radius: 5px;
+                        background-color: #f8f9fa;
+                        padding: 10px;
+                    }
+                """)
+                layout_codigo = QVBoxLayout()
+
+                # Agregar cada instrucción
+                for instruccion in instrucciones:
+                    label_inst = QLabel(f"• {instruccion}")
+                    label_inst.setStyleSheet("""
+                        QLabel {
+                            font-family: 'Courier New', monospace;
+                            font-size: 13px;
+                            color: #212529;
+                            padding: 3px 5px;
+                        }
+                    """)
+                    layout_codigo.addWidget(label_inst)
+
+                frame_codigo.setLayout(layout_codigo)
+                layout_scroll.addWidget(frame_codigo)
+                layout_scroll.addSpacing(20)
+
+        except ImportError:
+            # Si no existe la clase, mostrar mensaje
+            label_error = QLabel("Error: No se pudo importar GeneradorCodigoP")
+            label_error.setStyleSheet(estilos['titulo'])
+            label_error.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout_scroll.addWidget(label_error)
+
+        layout_scroll.addStretch()
+        contenedor.setLayout(layout_scroll)
+        scroll_area.setWidget(contenedor)
+
+        self.layout_contenido.addWidget(scroll_area)
 
     def mostrar_triplos(self):
         """Muestra los triplos para cada expresión"""

@@ -181,6 +181,8 @@ class VentanaResultados(QDialog):
             # Procesar cada expresión
             for expresion in self.expresiones:
                 # Crear convertidor y obtener pasos
+                print("Dentro de la clase VentanaResultados: ")
+                print(expresion)
                 convertidor = ConvertidorInfijoAPrefijo(expresion)
                 resultado = convertidor.convertir()
                 pasos = convertidor.obtener_pasos()
@@ -482,21 +484,3 @@ class VentanaResultados(QDialog):
         self.layout_contenido.addWidget(scroll_area)
 
 
-# Ejemplo de uso
-if __name__ == "__main__":
-    from PyQt6.QtWidgets import QApplication
-    import sys
-
-    app = QApplication(sys.argv)
-
-    # Crear ventana con lista de expresiones
-    expresiones = [
-        "x=8+4*5/3+20/2-4",
-        "y=10*2+5",
-        "z=a+b*c"
-    ]
-
-    ventana = VentanaResultados(expresiones)
-    ventana.exec()
-
-    sys.exit(app.exec())

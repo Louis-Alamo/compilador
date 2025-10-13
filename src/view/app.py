@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, QT
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
 
+from src.view.components.GeneracionCodigoIntermedio import VentanaResultados
 from src.view.components.PDFBrowserDialog import PDFBrowserDialog
 from src.view.components.TablaTokens import TablaTokensDialog
 from src.view.components.TablaAnalizisSintactico import TablaAnalizisSintactico
@@ -261,10 +262,16 @@ class EditorApp:
         self.semantico_tab.setPlainText("Análisis semántico no ejecutado")
         self.semantico_tab.setStyleSheet(self.get_text_edit_style())
 
+        self.codigo_intermedio_tab = QTextEdit()
+        self.codigo_intermedio_tab.setReadOnly(True)
+        self.codigo_intermedio_tab.setPlainText("Análisis de código intermedio no ejecutado")
+        self.codigo_intermedio_tab.setStyleSheet(self.get_text_edit_style())
+
         # Agregar pestañas (sin la de Mostrar tabla)
         self.tab_widget.addTab(self.lexico_tab, "LÉXICO")
         self.tab_widget.addTab(self.sintactico_tab, "SINTÁCTICO")
         self.tab_widget.addTab(self.semantico_tab, "SEMÁNTICO")
+        self.tab_widget.addTab(self.codigo_intermedio_tab, "CODIGO INTERMEDIO")
 
         # Conectar evento de cambio de pestaña
         self.tab_widget.currentChanged.connect(self.on_tab_changed)
@@ -375,6 +382,10 @@ inicio"""
         semantico_action = QAction("Semántico", main_window)
         semantico_action.triggered.connect(lambda: self.ejecutar_analisis("Semántico"))
         analisis_menu.addAction(semantico_action)
+
+        codigo_intermedio_action = QAction("Codigo intermedio", main_window)
+        codigo_intermedio_action.triggered.connect(lambda: self.ejecutar_analisis("Codigo intermedio"))
+        analisis_menu.addAction(codigo_intermedio_action)
 
         analisis_menu.addSeparator()
 
@@ -553,7 +564,6 @@ inicio"""
 
             self.tab_widget.setCurrentIndex(0)
 
-
         elif tipo_analisis == "Sintáctico":
             # Simular análisis semántico
             patrones = [
@@ -673,7 +683,7 @@ inicio"""
                 self.semantico_tab.append(">> Análisis semántico sin errores. Generando árboles...")
 
                 operaciones = analizador_semantico.obtener_operaciones_aritmeticas()
-
+                print(operaciones)
                 # Si no hay operaciones, no hay árboles que generar.
 
                 if not operaciones:
@@ -718,6 +728,110 @@ inicio"""
                 # Finalmente, mostramos el diálogo con los PDFs generados.
 
                 self.mostrar_arboles_semanticos(directorio_salida)
+
+        elif tipo_analisis == "Codigo intermedio":
+
+            self.codigo_intermedio_tab.append("Iniciando generacion de codigo intermedio (con verificaciones previas)...")
+
+            # --- FASE 1: Verificación Léxica Obligatoria ---
+
+            self.codigo_intermedio_tab.append("FASE 1: Ejecutando análisis léxico...")
+
+            analizador_lexico = LexicalAnalizerForMy(self.editor_widget.get_text())
+
+            hay_errores_lexicos = analizador_lexico.analizar_codigo()
+
+            if hay_errores_lexicos:
+                self.codigo_intermedio_tab.append(">> Fallo LÉXICO detectado. Deteniendo generacion de codigo intermedio..  .")
+
+                # Le decimos a la UI que muestre los errores léxicos y aborte.
+
+                self.ejecutar_analisis("Léxico")
+                return
+
+            self.codigo_intermedio_tab.append(">> Análisis léxico exitoso. Procediendo a la Fase 2.")
+
+            # --- FASE 2: Verificación Sintáctica Obligatoria ---
+
+            self.codigo_intermedio_tab.append("FASE 2: Ejecutando análisis sintáctico...")
+
+            # Reutilizamos los patrones que ya tenías definidos
+
+            patrones = [
+
+                r'\d+\.[a-zA-Z_][a-zA-Z0-9_]*', r'\d+[a-zA-Z_][a-zA-Z0-9_]*',
+
+                r'\d+(\.\d+){2,}', r'\d+\.\d+', r'\d+\.', r'[a-zA-Z_][a-zA-Z0-9_]*',
+
+                r'\d+', r'"[^"]*"', r'#.*?#', r'([,.;:(){}\[\]\+\-\*/=<>!?%&#|@^~])', r'(\s)'
+
+            ]
+
+            lista_tokens = Tokenizador.obtener_tokens_del_codigo(self.editor_widget.get_text(), patrones)
+
+            analizador_sintactico = AnalizadorSintactico(lista_tokens)
+
+            analisis_sintactico_exitoso = analizador_sintactico.analizar()
+
+            if not analisis_sintactico_exitoso:
+                self.codigo_intermedio_tab.append(">> Fallo SINTÁCTICO detectado. Deteniendo análisis semántico.")
+
+                # Le decimos a la UI que muestre los errores sintácticos y aborte.
+
+                self.ejecutar_analisis("Sintáctico")
+
+                # ¡LA CLAVE! Detenemos la ejecución de este método aquí mismo.
+
+                return
+
+            self.codigo_intermedio_tab.append(">> Análisis sintáctico exitoso. Procediendo a la Fase 3.")
+
+            # --- FASE 3: Ejecución del Análisis Semántico (Solo si todo lo anterior pasó) ---
+
+            self.codigo_intermedio_tab.append("FASE 3: Ejecutando análisis semántico...")
+
+            #self.tab_widget.setCurrentIndex(2)
+
+            codigo_linea_por_linea = Tokenizador.obtener_tokens_del_codigo_linea_por_linea(self.editor_widget.get_text(), patrones)
+
+            analizador_semantico = AnalizadorSemantico(codigo_linea_por_linea)
+
+            analizador_semantico.analizar_codigo()
+
+            errores_semanticos = analizador_semantico.obtener_errores()
+
+            if errores_semanticos:
+
+                # Si hay errores semánticos, los mostramos.
+
+                self.semantico_tab.append(f">> Fallo SEMANTICO detectado. Deteniendo análisis semántico.")
+
+                self.ejecutar_analisis("Semántico")
+                return
+
+            self.codigo_intermedio_tab.append(">> Análisis semántico sin errores. Generando codigo intermedio...")
+
+            lista_expresiones = analizador_semantico.obtener_operaciones_aritmeticas()
+            self.mostrar_interfaz_codigo_intermedio(lista_expresiones)
+
+    def mostrar_interfaz_codigo_intermedio(self, lista_expresiones):
+        # 🔹 Transformar lista de tokens → lista de expresiones como cadenas
+        expresiones = [
+            " ".join(token for token in expresion if token != ";")
+            for expresion in lista_expresiones
+        ]
+
+        # 🔹 (Opcional) mostrar en consola para depuración
+        print(expresiones)
+
+        # 🔹 Mostrar en el área de texto
+        self.codigo_intermedio_tab.setPlainText(
+            "CÓDIGO INTERMEDIO GENERADO\n\n" + "\n".join(expresiones)
+        )
+
+        # 🔹 Mostrar ventana con las expresiones generadas
+        ventana = VentanaResultados(expresiones=expresiones, parent=None)
+        ventana.exec()
 
     def formatear_errores(self, lista_errores):
         resultado = []

@@ -6,6 +6,7 @@ from typing import List
 
 from src.util.CodigoP import GeneradorCodigoP
 from src.util.Cuadruplos import ParserCuadruplos
+from src.util.NotacionPolaca import ConvertidorInfijoAPrefijo
 from src.util.Triplos import ParserTriplos
 
 
@@ -161,18 +162,101 @@ class VentanaResultados(QDialog):
         self.layout_contenido.addStretch()
 
     def mostrar_notacion_polaca(self):
-        """Muestra la notación polaca"""
+        """Muestra la notación polaca (prefija)"""
         self.limpiar_contenido()
         estilos = self.get_estilos()
 
-        label = QLabel("Notación Polaca")
-        label.setStyleSheet(estilos['titulo'])
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Crear área de scroll
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("QScrollArea { border: none; }")
 
-        self.layout_contenido.addWidget(label)
-        self.layout_contenido.addStretch()
+        # Widget contenedor para todas las tablas
+        contenedor = QWidget()
+        layout_scroll = QVBoxLayout()
 
-        # Aquí se implementará la lógica con la clase correspondiente
+        # Importar la clase ConvertidorInfijoAPrefijo
+        try:
+
+            # Procesar cada expresión
+            for expresion in self.expresiones:
+                # Crear convertidor y obtener pasos
+                convertidor = ConvertidorInfijoAPrefijo(expresion)
+                resultado = convertidor.convertir()
+                pasos = convertidor.obtener_pasos()
+
+                # Label con la expresión
+                label_expr = QLabel(f"{expresion}")
+                label_expr.setStyleSheet(estilos['expresion'])
+                label_expr.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                layout_scroll.addWidget(label_expr)
+
+                # Crear tabla
+                tabla = QTableWidget()
+                tabla.setStyleSheet(estilos['tabla'])
+                tabla.setColumnCount(4)
+                tabla.setRowCount(len(pasos))
+
+                # Encabezados
+                tabla.setHorizontalHeaderLabels(['Token', 'Pila Operadores', 'Pila Operandos', 'Expresiones Parciales'])
+
+                # Llenar la tabla
+                for i, paso in enumerate(pasos):
+                    # Token
+                    item_token = QTableWidgetItem(str(paso.get('token', '')))
+                    item_token.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    tabla.setItem(i, 0, item_token)
+
+                    # Pila Operadores (convertir lista a string con comas)
+                    pila_ops = paso.get('pila_operadores', [])
+                    texto_ops = ', '.join(str(op) for op in pila_ops) if pila_ops else ''
+                    item_ops = QTableWidgetItem(texto_ops)
+                    item_ops.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    tabla.setItem(i, 1, item_ops)
+
+                    # Pila Operandos (convertir lista a string con comas)
+                    pila_operandos = paso.get('pila_operandos', [])
+                    texto_operandos = ', '.join(str(op) for op in pila_operandos) if pila_operandos else ''
+                    item_operandos = QTableWidgetItem(texto_operandos)
+                    item_operandos.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    tabla.setItem(i, 2, item_operandos)
+
+                    # Expresiones Parciales (convertir lista a string con comas)
+                    expr_parciales = paso.get('expresiones_parciales', [])
+                    texto_parciales = ', '.join(str(expr) for expr in expr_parciales) if expr_parciales else ''
+                    item_parciales = QTableWidgetItem(texto_parciales)
+                    item_parciales.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    tabla.setItem(i, 3, item_parciales)
+
+                # Ajustar tamaño de columnas al contenido
+                tabla.resizeColumnsToContents()
+
+                # Asegurar que la tabla se muestre completa sin scroll interno
+                tabla.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                tabla.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+                # Calcular y establecer la altura exacta de la tabla
+                altura = tabla.horizontalHeader().height()
+                for i in range(tabla.rowCount()):
+                    altura += tabla.rowHeight(i)
+                altura += 2  # Bordes
+                tabla.setFixedHeight(altura)
+
+                layout_scroll.addWidget(tabla)
+                layout_scroll.addSpacing(20)
+
+        except ImportError:
+            # Si no existe la clase, mostrar mensaje
+            label_error = QLabel("Error: No se pudo importar ConvertidorInfijoAPrefijo")
+            label_error.setStyleSheet(estilos['titulo'])
+            label_error.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout_scroll.addWidget(label_error)
+
+        layout_scroll.addStretch()
+        contenedor.setLayout(layout_scroll)
+        scroll_area.setWidget(contenedor)
+
+        self.layout_contenido.addWidget(scroll_area)
 
     def mostrar_codigo_p(self):
         """Muestra el código P para cada expresión"""
@@ -261,6 +345,7 @@ class VentanaResultados(QDialog):
 
         # Importar la clase ParserTriplos (asumiendo que existe)
         try:
+
             parser = ParserTriplos()
 
             # Procesar cada expresión
@@ -336,6 +421,7 @@ class VentanaResultados(QDialog):
 
         # Importar la clase ParserCuadruplos
         try:
+
             parser = ParserCuadruplos()
 
             # Procesar cada expresión

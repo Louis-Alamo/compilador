@@ -166,17 +166,3 @@ class ParserTriplos:
 
         return triplos
 
-
-# Ejemplo de uso
-if __name__ == "__main__":
-    parser = ParserTriplos()
-
-    # Casos de prueba
-    expresiones = [
-        "x=8+4*5/3+20/2-4",
-    ]
-    
-    for expr in expresiones:
-        print("="*60)       
-        parser.mostrar_pasos(expr)
-        print()

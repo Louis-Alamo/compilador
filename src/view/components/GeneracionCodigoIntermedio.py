@@ -186,7 +186,7 @@ class VentanaResultados(QDialog):
                 convertidor = NotacionPostfija(expresion)
                 resultado = convertidor.convertir()
                 pasos = convertidor.obtener_pasos()
-
+                print(pasos)
                 # Label con la expresión
                 label_expr = QLabel(f"{expresion}")
                 label_expr.setStyleSheet(estilos['expresion'])

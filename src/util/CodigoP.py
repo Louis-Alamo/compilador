@@ -40,8 +40,8 @@ class GeneradorCodigoP:
         return self.instrucciones
 
     def _es_identificador_valido(self, s):
-        """Verifica si una cadena es un identificador válido"""
-        return bool(re.match(r'^[a-zA-Z]+$', s))
+        """Verifica si una cadena es un identificador válido (acepta letras, números y guiones bajos)"""
+        return bool(re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', s))
 
     def _parentesis_balanceados(self, expr):
         """Verifica que los paréntesis estén balanceados"""
@@ -173,32 +173,16 @@ class GeneradorCodigoP:
         return True
 
     def _tokenizar(self, expr):
-        """Convierte una expresión en una lista de tokens"""
+        """Convierte una expresión en una lista de tokens (números, variables, operadores)"""
         expr = expr.strip()
-        tokens = []
-        token_actual = ''
-
-        for c in expr:
-            if c in '+-*/':
-                if token_actual.strip():
-                    tokens.append(token_actual.strip())
-                tokens.append(c)
-                token_actual = ''
-            elif c == ' ':
-                if token_actual.strip():
-                    tokens.append(token_actual.strip())
-                    token_actual = ''
-            else:
-                token_actual += c
-
-        if token_actual.strip():
-            tokens.append(token_actual.strip())
-
+        # Regex: números (enteros/decimales), identificadores válidos, operadores
+        tokens = re.findall(r'\d+\.?\d*|[a-zA-Z_][a-zA-Z0-9_]*|RESULTADO|[\+\-\*/]', expr)
         return tokens
 
     def _cargar_valor(self, token):
         """Genera instrucción de carga según el tipo de token"""
-        if token.isdigit():
+        # Verificar si es un número (entero o decimal)
+        if re.match(r'^\d+\.?\d*$', token):
             self.instrucciones.append(f"ldc {token}")
         elif self._es_identificador_valido(token):
             self.instrucciones.append(f"lcd {token}")
@@ -245,3 +229,5 @@ def main():
             print(f"Error: {e}\n")
         except Exception as e:
             print(f"Error inesperado: {e}\n")
+
+

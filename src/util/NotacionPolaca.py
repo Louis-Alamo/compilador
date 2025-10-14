@@ -8,7 +8,7 @@ class NotacionPostfija:
 
         # Detectar si hay una asignación (variable = expresion)
         if '=' in expresion:
-            partes = expresion.split('=', 1)  # Dividir solo por el primer '='
+            partes = expresion.split('=', 1)
             self.variable_asignacion = partes[0].strip()
             self.expresion = Agrupador.agrupar(partes[1].strip())
         else:
@@ -16,45 +16,21 @@ class NotacionPostfija:
 
         self.pila_operandos = []
         self.pila_operadores = []
-        self.marcadores_operandos = []  # Marca cuántos operandos había al abrir cada '('
+        self.marcadores_operandos = []
         self.pasos = []
         self.expresion_final = ""
+        self.expresiones_parciales = []  # Lista para ir acumulando las expresiones
 
     def tokenizar(self, expresion):
         """
         Convierte la expresión en tokens, agrupando números de múltiples dígitos
-        y variables de múltiples caracteres.
+        y variables de múltiples caracteres (con números y guiones bajos).
         """
+        import re
         tokens = []
-        i = 0
-
-        while i < len(expresion):
-            char = expresion[i]
-
-            # Ignorar espacios
-            if char.isspace():
-                i += 1
-                continue
-
-            # Agrupar dígitos consecutivos (números de múltiples dígitos)
-            if char.isdigit():
-                numero = ''
-                while i < len(expresion) and expresion[i].isdigit():
-                    numero += expresion[i]
-                    i += 1
-                tokens.append(numero)
-            # Agrupar letras consecutivas (variables de múltiples caracteres)
-            elif char.isalpha():
-                variable = ''
-                while i < len(expresion) and expresion[i].isalnum():
-                    variable += expresion[i]
-                    i += 1
-                tokens.append(variable)
-            # Operadores y paréntesis
-            else:
-                tokens.append(char)
-                i += 1
-
+        # Regex mejorado: números (enteros/decimales), identificadores válidos, operadores/paréntesis
+        patron = r'\d+\.?\d*|[a-zA-Z_][a-zA-Z0-9_]*|[\+\-\*/\^\%\(\)]'
+        tokens = re.findall(patron, expresion.replace(" ", ""))
         return tokens
 
     def es_operador(self, token):
@@ -62,17 +38,23 @@ class NotacionPostfija:
         return token in ['+', '-', '*', '/', '^', '%']
 
     def es_operando(self, token):
-        """Verifica si un token es un operando (letra o número)"""
-        return token.isalnum()
+        """Verifica si un token es un operando (número o identificador válido)"""
+        import re
+        # Acepta números (enteros/decimales) o identificadores válidos
+        return bool(re.match(r'^\d+\.?\d*$|^[a-zA-Z_][a-zA-Z0-9_]*$', token))
 
-    def registrar_paso(self, accion, token=""):
+    def registrar_paso(self, accion, token="", expresion_generada=""):
         """Registra el estado actual de las pilas y la acción realizada"""
+        # Para expresiones_parciales: solo mostrar la última expresión generada en este paso
+        expr_parcial_actual = [expresion_generada] if expresion_generada else []
+
         paso = {
             'accion': accion,
             'token': token,
             'pila_operandos': self.pila_operandos.copy(),
             'pila_operadores': self.pila_operadores.copy(),
-            'expresion_parcial': self.expresion_final
+            'expresion_parcial': self.expresion_final,
+            'expresiones_parciales': expr_parcial_actual  # Solo la expresión de ESTE paso
         }
         self.pasos.append(paso)
 
@@ -80,8 +62,6 @@ class NotacionPostfija:
         """
         Procesa el contenido entre paréntesis cuando se encuentra un ')'.
         Saca TODO lo que está entre '(' y ')': operandos Y operadores.
-        No asume ningún patrón específico.
-        IMPORTANTE: Los operandos se sacan en el orden de la pila (LIFO).
         """
         # Sacar el ')' primero
         if self.pila_operadores and self.pila_operadores[-1] == ')':
@@ -95,31 +75,24 @@ class NotacionPostfija:
         # Calcular cuántos operandos pertenecen a este paréntesis
         num_operandos_dentro = len(self.pila_operandos) - num_operandos_antes
 
-        # Sacar los operandos en orden LIFO (tal como salen de la pila)
-        # Para 4*5: pila=[4,5] -> saca 5, luego 4 -> queda [5,4]
+        # Sacar los operandos en orden LIFO
         operandos_temp = []
         for _ in range(num_operandos_dentro):
             if self.pila_operandos:
                 operandos_temp.append(self.pila_operandos.pop())
 
-        # NO invertir - mantener el orden LIFO de la pila
-        # operandos_temp ya está en orden: [5, 4] para 4*5
-
-        # Sacar TODOS los operadores hasta el '(' (pueden ser 0, 1 o más)
+        # Sacar TODOS los operadores hasta el '('
         operadores_temp = []
         while self.pila_operadores and self.pila_operadores[-1] != '(':
             elemento = self.pila_operadores.pop()
             if self.es_operador(elemento):
                 operadores_temp.append(elemento)
 
-        # NO invertir operadores tampoco - mantener orden de salida
-
         # Quitar el '(' de la pila
         if self.pila_operadores and self.pila_operadores[-1] == '(':
             self.pila_operadores.pop()
 
-        # Formar expresión: operandos (en orden LIFO) + operadores
-        # Para (4*5): operandos=[5,4] operadores=[*] -> resultado="54*"
+        # Formar expresión postfija
         expresion_postfija = ''.join(operandos_temp) + ''.join(operadores_temp)
 
         # Agregar a la expresión final
@@ -127,29 +100,29 @@ class NotacionPostfija:
             if self.expresion_final:
                 self.expresion_final += " "
             self.expresion_final += expresion_postfija
+            self.expresiones_parciales.append(expresion_postfija)
 
-        self.registrar_paso(f"Procesar paréntesis: formar '{expresion_postfija}' (todo eliminado)")
+        # Registrar paso pasando la expresión generada en ESTE paso
+        self.registrar_paso(
+            f"Procesar paréntesis: formar '{expresion_postfija}' (todo eliminado)",
+            expresion_generada=expresion_postfija
+        )
 
     def convertir(self):
         """Convierte la expresión infija a notación postfija"""
-        # Tokenizar la expresión para agrupar números de múltiples dígitos
         tokens = self.tokenizar(self.expresion)
 
         self.registrar_paso("Inicio de conversión")
 
         for token in tokens:
             if token == '(':
-                # Marcar cuántos operandos hay actualmente
                 self.marcadores_operandos.append(len(self.pila_operandos))
                 self.pila_operadores.append(token)
                 self.registrar_paso(f"Agregar '(' a pila de operadores", token)
 
             elif token == ')':
-                # PASO 1: Agregar el ')' a la pila primero
                 self.pila_operadores.append(token)
                 self.registrar_paso(f"Agregar ')' a pila de operadores", token)
-
-                # PASO 2: Procesar todo lo que está entre paréntesis
                 self.procesar_parentesis_cierre()
 
             elif self.es_operando(token):
@@ -160,7 +133,7 @@ class NotacionPostfija:
                 self.pila_operadores.append(token)
                 self.registrar_paso(f"Agregar operador '{token}' a pila", token)
 
-        # Si quedaron operandos sin procesar (sin paréntesis)
+        # Procesar operandos restantes
         if self.pila_operandos:
             elementos_restantes = []
             while self.pila_operandos:
@@ -174,13 +147,19 @@ class NotacionPostfija:
             if self.expresion_final:
                 self.expresion_final += " "
             self.expresion_final += expresion_restante
+            if expresion_restante:
+                self.expresiones_parciales.append(expresion_restante)
 
         self.registrar_paso("Conversión completada")
 
-        # Si había una variable de asignación, agregarla al final
+        # Agregar asignación si existe
         if self.variable_asignacion:
-            self.expresion_final += f" = {self.variable_asignacion}"
-            self.registrar_paso(f"Agregar asignación: = {self.variable_asignacion}")
+            asignacion_completa = f"{self.expresion_final} = {self.variable_asignacion}"
+            self.expresion_final = asignacion_completa
+            self.registrar_paso(
+                f"Agregar asignación: = {self.variable_asignacion}",
+                expresion_generada=asignacion_completa
+            )
 
         return self.expresion_final
 
@@ -200,6 +179,7 @@ class NotacionPostfija:
             print(f"   Pila Operandos: {paso['pila_operandos']}")
             print(f"   Pila Operadores: {paso['pila_operadores']}")
             print(f"   Expresión parcial: {paso['expresion_parcial']}")
+            print(f"   Expresiones parciales: {paso['expresiones_parciales']}")
             print("-" * 80)
 
         print(f"\n{'=' * 80}")
@@ -216,7 +196,7 @@ class NotacionPostfija:
                 - token (str): Token procesado en ese paso
                 - pila_operandos (list): Estado de la pila de operandos
                 - pila_operadores (list): Estado de la pila de operadores
-                - expresion_parcial (str): Expresión parcial generada
+                - expresion_parcial (str): Expresión parcial generada completa
+                - expresiones_parciales (list): Lista de expresiones parciales
         """
         return self.pasos.copy()
-

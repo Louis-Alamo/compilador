@@ -6,7 +6,7 @@ from typing import List
 
 from src.util.CodigoP import GeneradorCodigoP
 from src.util.Cuadruplos import ParserCuadruplos
-from src.util.NotacionPolaca import ConvertidorInfijoAPrefijo
+from src.util.NotacionPolaca import NotacionPostfija
 from src.util.Triplos import ParserTriplos
 
 
@@ -183,7 +183,7 @@ class VentanaResultados(QDialog):
                 # Crear convertidor y obtener pasos
                 print("Dentro de la clase VentanaResultados: ")
                 print(expresion)
-                convertidor = ConvertidorInfijoAPrefijo(expresion)
+                convertidor = NotacionPostfija(expresion)
                 resultado = convertidor.convertir()
                 pasos = convertidor.obtener_pasos()
 

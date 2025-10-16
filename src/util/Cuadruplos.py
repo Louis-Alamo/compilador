@@ -1,7 +1,7 @@
 class ParserCuadruplos:
     def __init__(self):
         self.pasos = []
-        self.contador_temp = 0
+        self.contador_temp = 1
         # Prioridad: menor número = mayor prioridad
         self.prioridad = {'*': 1, '/': 1, '+': 2, '-': 2}
         
@@ -11,7 +11,7 @@ class ParserCuadruplos:
         de izquierda a derecha
         """
         self.pasos = []
-        self.contador_temp = 0
+        self.contador_temp = 1
         
         expresion_limpia = expresion.replace(' ', '')
         
@@ -51,12 +51,21 @@ class ParserCuadruplos:
                 tokens.append(expr[i])
                 i += 1
             elif expr[i].isdigit() or expr[i] == '.':
+                # Reconocer números
                 j = i
                 while j < len(expr) and (expr[j].isdigit() or expr[j] == '.'):
                     j += 1
                 tokens.append(expr[i:j])
                 i = j
+            elif expr[i].isalpha() or expr[i] == '_':
+                # Reconocer variables (identificadores)
+                j = i
+                while j < len(expr) and (expr[j].isalnum() or expr[j] == '_'):
+                    j += 1
+                tokens.append(expr[i:j])
+                i = j
             else:
+                # Saltar caracteres no reconocidos (espacios, etc.)
                 i += 1
         
         return tokens

@@ -24,43 +24,49 @@ class VentanaResultados(QDialog):
         return {
             'botones': """
                 QPushButton {
-                    padding: 15px;
+                    padding: 15px 20px;
                     font-size: 14px;
+                    font-weight: 500;
                     text-align: left;
-                    border: 1px solid #ccc;
-                    background-color: #f0f0f0;
-                    border-radius: 5px;
+                    border: 2px solid #e0e0e0;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    color: #2c3e50;
                 }
                 QPushButton:hover {
-                    background-color: #e0e0e0;
+                    background-color: #f0f7ff;
+                    border-color: #007bff;
+                    color: #007bff;
                 }
                 QPushButton:pressed {
-                    background-color: #d0d0d0;
+                    background-color: #e3f2fd;
+                    border-color: #0056b3;
                 }
             """,
             'frame': """
                 QFrame {
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
-                    background-color: white;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    background-color: #ffffff;
                 }
             """,
             'titulo': """
                 QLabel {
-                    font-size: 18px;
+                    font-size: 20px;
                     font-weight: bold;
                     padding: 20px;
-                    color: #666;
+                    color: #495057;
                 }
             """,
             'expresion': """
                 QLabel {
                     font-size: 16px;
-                    font-weight: bold;
-                    padding: 10px;
-                    background-color: #f8f9fa;
-                    border: 1px solid #dee2e6;
-                    border-radius: 5px;
+                    font-weight: 600;
+                    padding: 12px 16px;
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                                stop:0 #f8f9fa, stop:1 #e9ecef);
+                    border-left: 4px solid #007bff;
+                    border-radius: 6px;
                     color: #212529;
                 }
             """,
@@ -68,39 +74,87 @@ class VentanaResultados(QDialog):
                 QTableWidget {
                     border: 1px solid #dee2e6;
                     gridline-color: #dee2e6;
-                    background-color: white;
+                    background-color: #ffffff;
+                    border-radius: 6px;
+                    alternate-background-color: #f8f9fa;
                 }
                 QTableWidget::item {
-                    padding: 5px;
+                    padding: 8px;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                QTableWidget::item:selected {
+                    background-color: #e3f2fd;
+                    color: #212529;
                 }
                 QHeaderView::section {
-                    background-color: #e9ecef;
-                    padding: 8px;
-                    border: 1px solid #dee2e6;
+                    background-color: #007bff;
+                    color: white;
+                    padding: 10px;
+                    border: none;
                     font-weight: bold;
+                    font-size: 13px;
+                }
+                QHeaderView::section:first {
+                    border-top-left-radius: 6px;
+                }
+                QHeaderView::section:last {
+                    border-top-right-radius: 6px;
                 }
             """
         }
 
     def inicializar_ui(self):
         self.setWindowTitle("Resultados de Compilación")
-        self.setMinimumSize(800, 500)
+        self.setMinimumSize(1000, 600)
+        
+        # Estilo del diálogo completo
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #f5f5f5;
+            }
+        """)
 
         estilos = self.get_estilos()
 
         # Layout principal horizontal
         layout_principal = QHBoxLayout()
+        layout_principal.setSpacing(15)
+        layout_principal.setContentsMargins(15, 15, 15, 15)
 
         # Panel izquierdo con botones
         panel_botones = QWidget()
+        panel_botones.setStyleSheet("""
+            QWidget {
+                background-color: #ffffff;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+            }
+        """)
         layout_botones = QVBoxLayout()
+        layout_botones.setSpacing(10)
+        layout_botones.setContentsMargins(10, 15, 10, 15)
         layout_botones.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        # Título del panel
+        titulo_panel = QLabel("Código Intermedio")
+        titulo_panel.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: #2c3e50;
+                padding: 10px;
+                background-color: transparent;
+                border: none;
+            }
+        """)
+        titulo_panel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout_botones.addWidget(titulo_panel)
 
         # Crear botones
-        self.btn_notacion = QPushButton("Notación Polaca")
-        self.btn_codigo_p = QPushButton("Código P")
-        self.btn_triplos = QPushButton("Triplos")
-        self.btn_cuadruplos = QPushButton("Cuádruplos")
+        self.btn_notacion = QPushButton("📋 Notación Polaca")
+        self.btn_codigo_p = QPushButton("⚙️ Código P")
+        self.btn_triplos = QPushButton("🔢 Triplos")
+        self.btn_cuadruplos = QPushButton("📊 Cuádruplos")
 
         # Aplicar estilos
         self.btn_notacion.setStyleSheet(estilos['botones'])
@@ -122,7 +176,7 @@ class VentanaResultados(QDialog):
         layout_botones.addStretch()
 
         panel_botones.setLayout(layout_botones)
-        panel_botones.setMaximumWidth(200)
+        panel_botones.setFixedWidth(220)
 
         # Panel derecho (contenedor de contenido)
         self.frame_contenido = QFrame()
@@ -131,6 +185,7 @@ class VentanaResultados(QDialog):
 
         # Layout para el frame de contenido
         self.layout_contenido = QVBoxLayout()
+        self.layout_contenido.setContentsMargins(20, 20, 20, 20)
         self.frame_contenido.setLayout(self.layout_contenido)
 
         # Mensaje inicial
@@ -154,12 +209,49 @@ class VentanaResultados(QDialog):
         self.limpiar_contenido()
         estilos = self.get_estilos()
 
-        label = QLabel("Seleccione una opción del menú")
-        label.setStyleSheet(estilos['titulo'])
+        # Contenedor central
+        container = QWidget()
+        container_layout = QVBoxLayout()
+        
+        # Icono o título grande
+        label_icono = QLabel("💻")
+        label_icono.setStyleSheet("""
+            QLabel {
+                font-size: 72px;
+                color: #007bff;
+            }
+        """)
+        label_icono.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        label = QLabel("Seleccione una opción del menú lateral")
+        label.setStyleSheet("""
+            QLabel {
+                font-size: 18px;
+                font-weight: 500;
+                color: #6c757d;
+                padding: 20px;
+            }
+        """)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        label_subtitulo = QLabel("Código Intermedio - Compilador")
+        label_subtitulo.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                color: #adb5bd;
+                padding: 10px;
+            }
+        """)
+        label_subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.layout_contenido.addWidget(label)
-        self.layout_contenido.addStretch()
+        container_layout.addStretch()
+        container_layout.addWidget(label_icono)
+        container_layout.addWidget(label)
+        container_layout.addWidget(label_subtitulo)
+        container_layout.addStretch()
+        
+        container.setLayout(container_layout)
+        self.layout_contenido.addWidget(container)
 
     def mostrar_notacion_polaca(self):
         """Muestra la notación polaca (prefija)"""
@@ -198,6 +290,7 @@ class VentanaResultados(QDialog):
                 tabla.setStyleSheet(estilos['tabla'])
                 tabla.setColumnCount(4)
                 tabla.setRowCount(len(pasos))
+                tabla.setAlternatingRowColors(True)
 
                 # Encabezados
                 tabla.setHorizontalHeaderLabels(['Token', 'Pila Operadores', 'Pila Operandos', 'Expresiones Parciales'])
@@ -294,16 +387,48 @@ class VentanaResultados(QDialog):
                 frame_codigo.setStyleSheet("""
                     QFrame {
                         border: 1px solid #dee2e6;
-                        border-radius: 5px;
-                        background-color: #f8f9fa;
-                        padding: 10px;
+                        border-radius: 8px;
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                                    stop:0 #ffffff, stop:1 #f8f9fa);
+                        padding: 15px;
                     }
                 """)
                 layout_codigo = QVBoxLayout()
 
                 # Agregar cada instrucción
-                for instruccion in instrucciones:
-                    label_inst = QLabel(f"• {instruccion}")
+                for i, instruccion in enumerate(instrucciones):
+                    # Frame individual para cada instrucción
+                    frame_instruccion = QFrame()
+                    frame_instruccion.setStyleSheet("""
+                        QFrame {
+                            background-color: white;
+                            border-left: 3px solid #007bff;
+                            border-radius: 4px;
+                            padding: 5px;
+                            margin: 2px 0px;
+                        }
+                        QFrame:hover {
+                            background-color: #f8f9fa;
+                        }
+                    """)
+                    
+                    layout_instruccion = QHBoxLayout()
+                    layout_instruccion.setContentsMargins(10, 5, 10, 5)
+                    
+                    # Número de línea
+                    label_num = QLabel(f"{i+1:02d}")
+                    label_num.setStyleSheet("""
+                        QLabel {
+                            font-family: 'Courier New', monospace;
+                            font-size: 12px;
+                            color: #6c757d;
+                            font-weight: bold;
+                            min-width: 30px;
+                        }
+                    """)
+                    
+                    # Instrucción
+                    label_inst = QLabel(instruccion)
                     label_inst.setStyleSheet("""
                         QLabel {
                             font-family: 'Courier New', monospace;
@@ -312,7 +437,13 @@ class VentanaResultados(QDialog):
                             padding: 3px 5px;
                         }
                     """)
-                    layout_codigo.addWidget(label_inst)
+                    
+                    layout_instruccion.addWidget(label_num)
+                    layout_instruccion.addWidget(label_inst)
+                    layout_instruccion.addStretch()
+                    
+                    frame_instruccion.setLayout(layout_instruccion)
+                    layout_codigo.addWidget(frame_instruccion)
 
                 frame_codigo.setLayout(layout_codigo)
                 layout_scroll.addWidget(frame_codigo)
@@ -366,6 +497,7 @@ class VentanaResultados(QDialog):
                 tabla.setStyleSheet(estilos['tabla'])
                 tabla.setColumnCount(4)
                 tabla.setRowCount(len(pasos))
+                tabla.setAlternatingRowColors(True)
 
                 # Encabezados
                 tabla.setHorizontalHeaderLabels(['Operador', 'Operando 1', 'Operando 2', 'Resultado'])
@@ -442,6 +574,7 @@ class VentanaResultados(QDialog):
                 tabla.setStyleSheet(estilos['tabla'])
                 tabla.setColumnCount(4)
                 tabla.setRowCount(len(pasos))
+                tabla.setAlternatingRowColors(True)
 
                 # Encabezados
                 tabla.setHorizontalHeaderLabels(['Operador', 'Operando 1', 'Operando 2', 'Resultado'])

@@ -185,7 +185,7 @@ class GeneradorCodigoP:
         if re.match(r'^\d+\.?\d*$', token):
             self.instrucciones.append(f"ldc {token}")
         elif self._es_identificador_valido(token):
-            self.instrucciones.append(f"lcd {token}")
+            self.instrucciones.append(f"lod {token}")
         elif token != 'RESULTADO':
             raise ValueError(f"Token inválido: {token}")
 
@@ -199,35 +199,4 @@ class GeneradorCodigoP:
         }
         if operador in ops:
             self.instrucciones.append(ops[operador])
-
-
-def main():
-    generador = GeneradorCodigoP()
-
-    print("=== Generador de Código P ===")
-    print("Ingrese una expresión aritmética (o 'salir' para terminar):\n")
-
-    while True:
-        try:
-            expresion = input("> ").strip()
-
-            if expresion.lower() in ['salir', 'exit', 'quit']:
-                print("¡Hasta luego!")
-                break
-
-            if not expresion:
-                continue
-
-            instrucciones = generador.generar(expresion)
-
-            print("\nCódigo P generado:")
-            for instr in instrucciones:
-                print(instr)
-            print()
-
-        except ValueError as e:
-            print(f"Error: {e}\n")
-        except Exception as e:
-            print(f"Error inesperado: {e}\n")
-
 

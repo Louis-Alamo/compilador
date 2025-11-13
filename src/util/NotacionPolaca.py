@@ -92,8 +92,9 @@ class NotacionPostfija:
         if self.pila_operadores and self.pila_operadores[-1] == '(':
             self.pila_operadores.pop()
 
-        # Formar expresión postfija
-        expresion_postfija = ''.join(operandos_temp) + ''.join(operadores_temp)
+        # Formar expresión postfija con espacios
+        expresion_postfija_lista = operandos_temp + operadores_temp
+        expresion_postfija = ' '.join(expresion_postfija_lista)
 
         # Agregar a la expresión final
         if expresion_postfija:
@@ -143,7 +144,7 @@ class NotacionPostfija:
                 while self.pila_operadores:
                     elementos_restantes.append(self.pila_operadores.pop())
 
-            expresion_restante = ''.join(elementos_restantes)
+            expresion_restante = ' '.join(elementos_restantes)
             if self.expresion_final:
                 self.expresion_final += " "
             self.expresion_final += expresion_restante
@@ -154,10 +155,10 @@ class NotacionPostfija:
 
         # Agregar asignación si existe
         if self.variable_asignacion:
-            asignacion_completa = f"{self.expresion_final} = {self.variable_asignacion}"
+            asignacion_completa = f"{self.expresion_final} {self.variable_asignacion} ="
             self.expresion_final = asignacion_completa
             self.registrar_paso(
-                f"Agregar asignación: = {self.variable_asignacion}",
+                f"Agregar asignación: {self.variable_asignacion} =",
                 expresion_generada=asignacion_completa
             )
 

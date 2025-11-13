@@ -500,7 +500,7 @@ class VentanaResultados(QDialog):
                 tabla.setAlternatingRowColors(True)
 
                 # Encabezados
-                tabla.setHorizontalHeaderLabels(['Operador', 'Operando 1', 'Operando 2', 'Resultado'])
+                tabla.setHorizontalHeaderLabels(['Posicion', 'Operando 1', 'Operando 2', 'Resultado'])
 
                 # Llenar la tabla
                 for i, paso in enumerate(pasos):

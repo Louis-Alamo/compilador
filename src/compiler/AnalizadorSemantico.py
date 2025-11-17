@@ -305,5 +305,6 @@ class AnalizadorSemantico:
     def obtener_operaciones_aritmeticas(self):
         return self.operaciones_aritmeticas
 
-
+    def obtener_tabla_simbolos(self):
+        return self.tabla
 

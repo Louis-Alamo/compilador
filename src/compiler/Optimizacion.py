@@ -36,6 +36,18 @@ class Optimizacion:
         print("\nCódigo optimizado (propagación de copias):")
         print(self.codigo_propagado)
 
+        # Aplicar eliminación de secuencias nulas
+        self.codigo_sin_nulas = self.eliminacion_secuencias_nulas()
+
+        print("\nCódigo optimizado (eliminación de secuencias nulas):")
+        print(self.codigo_sin_nulas)
+
+        # Aplicar precálculo de expresiones constantes
+        self.codigo_precalculado = self.precalculo_expresiones_constantes()
+
+        print("\nCódigo optimizado (precálculo de expresiones constantes):")
+        print(self.codigo_precalculado)
+
     def reduccion_de_potencias(self):
         """
         Optimiza multiplicaciones convirtiendo N * M en sumas repetidas
@@ -219,6 +231,151 @@ class Optimizacion:
 
         # Es un identificador válido
         return True
+
+    def eliminacion_secuencias_nulas(self):
+        """
+        Elimina operaciones redundantes con elementos neutros:
+        - a * 1 → a
+        - a / 1 → a
+        - a + 0 → a
+        - 0 + a → a
+        - a - 0 → a
+        
+        NO busca valores de variables, solo trabaja con literales.
+        """
+        # Trabajar sobre el código ya optimizado
+        codigo_base = self.codigo_propagado if hasattr(self, 'codigo_propagado') else self.codigo_optimizado
+        codigo_opt = []
+
+        for linea in codigo_base:
+            nueva_linea = []
+            i = 0
+
+            while i < len(linea):
+                # Verificar si hay suficientes tokens para una operación
+                if i + 2 < len(linea):
+                    operando1 = linea[i]
+                    operador = linea[i + 1]
+                    operando2 = linea[i + 2]
+
+                    # a * 1 → a
+                    if operador == '*' and operando2 == '1':
+                        nueva_linea.append(operando1)
+                        i += 3
+                        continue
+
+                    # 1 * a → a
+                    if operador == '*' and operando1 == '1':
+                        nueva_linea.append(operando2)
+                        i += 3
+                        continue
+
+                    # a / 1 → a
+                    if operador == '/' and operando2 == '1':
+                        nueva_linea.append(operando1)
+                        i += 3
+                        continue
+
+                    # a + 0 → a
+                    if operador == '+' and operando2 == '0':
+                        nueva_linea.append(operando1)
+                        i += 3
+                        continue
+
+                    # 0 + a → a
+                    if operador == '+' and operando1 == '0':
+                        nueva_linea.append(operando2)
+                        i += 3
+                        continue
+
+                    # a - 0 → a
+                    if operador == '-' and operando2 == '0':
+                        nueva_linea.append(operando1)
+                        i += 3
+                        continue
+
+                # Si no se aplicó ninguna optimización, conservar el token
+                nueva_linea.append(linea[i])
+                i += 1
+
+            codigo_opt.append(nueva_linea)
+
+        return codigo_opt
+
+    def precalculo_expresiones_constantes(self):
+        """
+        Pre-calcula expresiones donde todas las variables tienen valores asignados
+        en la tabla de símbolos.
+        
+        Ejemplo:
+        Si a=1, b=2, c=3 están en tabla_simbolos
+        y tenemos: d = a + b * c;
+        Se pre-calcula: d = 7; (1 + 2*3)
+        """
+        # Trabajar sobre el código ya optimizado
+        codigo_base = self.codigo_sin_nulas if hasattr(self, 'codigo_sin_nulas') else self.codigo_propagado
+        codigo_opt = []
+
+        for linea in codigo_base:
+            # Buscar patrón de asignación: variable = expresión ;
+            if len(linea) >= 4 and linea[1] == '=' and linea[-1] == ';':
+                var_destino = linea[0]
+                expresion = linea[2:-1]  # Todo entre '=' y ';'
+
+                # Verificar si todos los identificadores en la expresión tienen valor
+                if self._puede_precalcular(expresion):
+                    try:
+                        # Construir la expresión reemplazando variables por valores
+                        expresion_evaluable = self._construir_expresion_evaluable(expresion)
+                        
+                        # Evaluar la expresión
+                        resultado = eval(expresion_evaluable)
+                        
+                        # Crear nueva línea: variable = resultado ;
+                        nueva_linea = [var_destino, '=', str(resultado), ';']
+                        codigo_opt.append(nueva_linea)
+                        
+                        # Actualizar el valor en la tabla de símbolos
+                        self.tabla_de_variables.actualizar_valor(var_destino, resultado)
+                        
+                        continue
+                    except Exception as e:
+                        # Si hay error en la evaluación, mantener línea original
+                        pass
+
+            # Si no se pudo optimizar, mantener línea original
+            codigo_opt.append(linea[:])
+
+        return codigo_opt
+
+    def _puede_precalcular(self, expresion):
+        """
+        Verifica si todos los identificadores en la expresión tienen valores
+        asignados en la tabla de símbolos.
+        """
+        for token in expresion:
+            if self._es_identificador(token):
+                # Verificar que la variable existe y tiene valor
+                valor = self.tabla_de_variables.obtener_valor(token)
+                if valor is None:
+                    return False
+        return True
+
+    def _construir_expresion_evaluable(self, expresion):
+        """
+        Construye una expresión de Python reemplazando variables por sus valores.
+        """
+        expresion_eval = []
+        for token in expresion:
+            if self._es_identificador(token):
+                # Reemplazar variable por su valor
+                valor = self.tabla_de_variables.obtener_valor(token)
+                expresion_eval.append(str(valor))
+            else:
+                # Mantener números, operadores y paréntesis
+                expresion_eval.append(token)
+        
+        return ' '.join(expresion_eval)
 
 
 

@@ -20,33 +20,78 @@ class Optimizacion:
         self.tabla_de_variables = tabla_de_variables # Esta contiene variable y valores asignados
         self.codigo_cochino = Tokenizador.obtener_tokens_del_codigo_linea_por_linea(codigo_cochino, patrones)
 
-        print("Código original:")
-        print(self.codigo_cochino)
 
-        # Variable para almacenar el código optimizado
-        self.codigo_optimizado = self.reduccion_de_potencias()
-        '''
-        print("\nCódigo optimizado (reducción de potencias):")
-        print(self.codigo_optimizado)
-        '''
+    def optimizar_codigo(self):
+        """
+        Ejecuta todas las optimizaciones en secuencia.
+        Cada optimización trabaja sobre el resultado de la anterior.
+        Se ejecutan iterativamente hasta que no haya más cambios.
+        
+        Orden de optimizaciones:
+        1. Eliminación de secuencias nulas (a * 1 -> a, a + 0 -> a, etc.)
+        2. Reducción de potencias (N * M -> N + N + ...)
+        3. Precálculo de expresiones constantes
+        4. Propagación de copias (elimina x = y y reemplaza x por y)
+        
+        Returns:
+            list: Código optimizado final
+        """
+        print("=== INICIANDO OPTIMIZACIONES ===\n")
+        
+        # Optimización 1: Eliminación de secuencias nulas
+        print("1. Eliminación de secuencias nulas...")
+        while True:
+            codigo_anterior = self.codigo_cochino if not hasattr(self, 'codigo_sin_nulas') else self.codigo_sin_nulas
+            self.codigo_sin_nulas = self.eliminacion_secuencias_nulas()
+            if self.codigo_sin_nulas == codigo_anterior:
+                break
+            print("   -> Se aplicó una ronda de eliminación de secuencias nulas.")
+            # Actualizar para la siguiente iteración
+            self.codigo_cochino = self.codigo_sin_nulas 
+            
+        print(f"   Código después de eliminar nulas: {self.codigo_sin_nulas}\n")
+        
+        # Optimización 2: Reducción de potencias
+        print("2. Reducción de potencias...")
+        while True:
+            codigo_anterior = self.codigo_sin_nulas if not hasattr(self, 'codigo_optimizado') else self.codigo_optimizado
+            self.codigo_optimizado = self.reduccion_de_potencias()
+            if self.codigo_optimizado == codigo_anterior:
+                break
+            print("   -> Se aplicó una ronda de reducción de potencias.")
+            # Actualizar input para la siguiente iteración (reduccion_de_potencias usa self.codigo_sin_nulas)
+            self.codigo_sin_nulas = self.codigo_optimizado
 
-        # Aplicar propagación de copias
-        self.codigo_propagado = self.propagacion_de_copias()
+        print(f"   Código después de reducción: {self.codigo_optimizado}\n")
+        
+        # Optimización 3: Precálculo de expresiones constantes
+        print("3. Precálculo de expresiones constantes...")
+        while True:
+            codigo_anterior = self.codigo_optimizado if not hasattr(self, 'codigo_precalculado') else self.codigo_precalculado
+            self.codigo_precalculado = self.precalculo_expresiones_constantes()
+            if self.codigo_precalculado == codigo_anterior:
+                break
+            print("   -> Se aplicó una ronda de precálculo de constantes.")
+            # Actualizar input para la siguiente iteración (precalculo usa self.codigo_optimizado)
+            self.codigo_optimizado = self.codigo_precalculado
 
-        print("\nCódigo optimizado (propagación de copias):")
-        print(self.codigo_propagado)
+        print(f"   Código después de precálculo: {self.codigo_precalculado}\n")
+        
+        # Optimización 4: Propagación de copias
+        print("4. Propagación de copias...")
+        while True:
+            codigo_anterior = self.codigo_precalculado if not hasattr(self, 'codigo_final') else self.codigo_final
+            self.codigo_final = self.propagacion_de_copias()
+            if self.codigo_final == codigo_anterior:
+                break
+            print("   -> Se aplicó una ronda de propagación de copias.")
+            # Actualizar input para la siguiente iteración (propagacion usa self.codigo_precalculado)
+            self.codigo_precalculado = self.codigo_final
 
-        # Aplicar eliminación de secuencias nulas
-        self.codigo_sin_nulas = self.eliminacion_secuencias_nulas()
-
-        print("\nCódigo optimizado (eliminación de secuencias nulas):")
-        print(self.codigo_sin_nulas)
-
-        # Aplicar precálculo de expresiones constantes
-        self.codigo_precalculado = self.precalculo_expresiones_constantes()
-
-        print("\nCódigo optimizado (precálculo de expresiones constantes):")
-        print(self.codigo_precalculado)
+        print(f"   Código final optimizado: {self.codigo_final}\n")
+        
+        print("=== OPTIMIZACIONES COMPLETADAS ===")
+        return self.codigo_final
 
     def reduccion_de_potencias(self):
         """
@@ -55,9 +100,11 @@ class Optimizacion:
         SOLO aplica cuando hay exactamente UNA multiplicación en la expresión.
         Ejemplo: 5 * 2 se convierte en 5 + 5
         """
+        # Trabajar sobre el código ya optimizado
+        codigo_base = self.codigo_sin_nulas if hasattr(self, 'codigo_sin_nulas') else self.codigo_cochino
         codigo_opt = []
 
-        for linea in self.codigo_cochino:
+        for linea in codigo_base:
             # Contar cuántas multiplicaciones hay en la línea
             num_multiplicaciones = linea.count('*')
 
@@ -137,6 +184,7 @@ class Optimizacion:
         Optimización de propagación de copias.
         Elimina asignaciones del tipo x = y y reemplaza todas las
         ocurrencias posteriores de x por y.
+        TAMBIÉN propaga constantes: x = 5 -> reemplaza x por 5.
 
         Ejemplo:
         a = 3 + i
@@ -147,25 +195,25 @@ class Optimizacion:
 
         Resultado: f = a se elimina y f se reemplaza por a en todo el código
         """
-        # Trabajar sobre el código ya optimizado por reducción de potencias
-        codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
+        # Trabajar sobre el código ya optimizado
+        codigo_base = self.codigo_precalculado if hasattr(self, 'codigo_precalculado') else self.codigo_cochino
         codigo_prop = [linea[:] for linea in codigo_base]
 
-        # Diccionario para almacenar las copias detectadas: {variable_copia: variable_original}
+        # Diccionario para almacenar las copias detectadas: {variable_copia: variable_original_o_constante}
         copias = {}
         lineas_a_eliminar = []
 
-        # Primera pasada: detectar asignaciones de copia simple (x = y)
+        # Primera pasada: detectar asignaciones de copia simple (x = y) o constante (x = 5)
         for i, linea in enumerate(codigo_prop):
             # Buscar patrón: variable = variable ;
-            # Debe tener exactamente 4 tokens: var, =, var, ;
+            # Debe tener exactamente 4 tokens: var, =, var/const, ;
             if len(linea) == 4 and linea[1] == '=' and linea[3] == ';':
                 var_destino = linea[0]
                 var_origen = linea[2]
 
-                # Verificar que ambos sean identificadores (no números ni cadenas)
+                # Verificar que destino sea identificador y origen sea identificador O número
                 if (self._es_identificador(var_destino) and
-                        self._es_identificador(var_origen)):
+                        (self._es_identificador(var_origen) or self._es_numero(var_origen))):
 
                     # Si var_origen ya es una copia, propagar la original
                     if var_origen in copias:
@@ -191,6 +239,14 @@ class Optimizacion:
         codigo_final = [linea for i, linea in enumerate(codigo_prop) if i not in lineas_a_eliminar]
 
         return codigo_final
+
+    def _es_numero(self, token):
+        """Verifica si el token es un número (entero o decimal)"""
+        try:
+            float(token)
+            return True
+        except ValueError:
+            return False
 
     def _es_identificador(self, token):
         """
@@ -243,11 +299,9 @@ class Optimizacion:
         
         NO busca valores de variables, solo trabaja con literales.
         """
-        # Trabajar sobre el código ya optimizado
-        codigo_base = self.codigo_propagado if hasattr(self, 'codigo_propagado') else self.codigo_optimizado
         codigo_opt = []
 
-        for linea in codigo_base:
+        for linea in self.codigo_cochino:
             nueva_linea = []
             i = 0
 
@@ -313,7 +367,7 @@ class Optimizacion:
         Se pre-calcula: d = 7; (1 + 2*3)
         """
         # Trabajar sobre el código ya optimizado
-        codigo_base = self.codigo_sin_nulas if hasattr(self, 'codigo_sin_nulas') else self.codigo_propagado
+        codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
         codigo_opt = []
 
         for linea in codigo_base:
@@ -393,10 +447,10 @@ patrones = [
             r'(\s)'  # espacio en blanco
         ]
 
-
+'''
 #Cambia el codigo por un valido, ejecuta el programa completo y busca uno que funcione y luego lo pegas abajo
 #para que no te falle la sintaxis
-codigo_marrano = '''fin
+codigo_marrano = fin
 entero suma, numero1,numero2, a,b,c,d,e;
 entero numero_decimal;
 a=1;
@@ -406,7 +460,7 @@ d=4;
 numero1 = a*3;
 numero2 = b+a+c+d;
 suma = numero1 - numero2;
-inicio'''
+inicio
 
 
 
@@ -418,5 +472,16 @@ analizador_semantico.analizar_codigo()
 tabla_variables = analizador_semantico.obtener_tabla_simbolos()
 
 print(tabla_variables)
+
 # Ejemplo de uso
-Optimizacion(codigo_marrano, tabla_variables)
+optimizador = Optimizacion(codigo_marrano, tabla_variables)
+codigo_optimizado = optimizador.optimizar_codigo()
+
+print("\n=== CÓDIGO ORIGINAL (tokenizado) ===")
+for i, linea in enumerate(codigo_linea_por_linea):
+    print(f"Línea {i}: {linea}")
+
+print("\n=== CÓDIGO OPTIMIZADO FINAL ===")
+for i, linea in enumerate(codigo_optimizado):
+    print(f"Línea {i}: {linea}")
+'''

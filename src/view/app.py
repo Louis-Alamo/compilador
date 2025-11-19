@@ -14,10 +14,12 @@ from src.view.components.TablaTokens import TablaTokensDialog
 from src.view.components.TablaAnalizisSintactico import TablaAnalizisSintactico
 from src.view.components.CodeEditor import CodeEditor
 from src.view.components.FileExplorer import FileExplorer
+from src.view.components.VentanaOptimizacion import VentanaOptimizacion
 from src.compiler.LexicalAnalizer import LexicalAnalizerForMy
 from src.compiler.AnalizadorSintactico import AnalizadorSintactico
 from src.util.Tokenizador import Tokenizador
 from src.compiler.AnalizadorSemantico import AnalizadorSemantico
+from src.compiler.Optimizacion import Optimizacion
 from src.models.Arbol import Arbol
 from src.util.ArbolPDF import ArbolPDF
 
@@ -267,11 +269,17 @@ class EditorApp:
         self.codigo_intermedio_tab.setPlainText("Análisis de código intermedio no ejecutado")
         self.codigo_intermedio_tab.setStyleSheet(self.get_text_edit_style())
 
+        self.optimizacion_tab = QTextEdit()
+        self.optimizacion_tab.setReadOnly(True)
+        self.optimizacion_tab.setPlainText("Optimización no ejecutada")
+        self.optimizacion_tab.setStyleSheet(self.get_text_edit_style())
+
         # Agregar pestañas (sin la de Mostrar tabla)
         self.tab_widget.addTab(self.lexico_tab, "LÉXICO")
         self.tab_widget.addTab(self.sintactico_tab, "SINTÁCTICO")
         self.tab_widget.addTab(self.semantico_tab, "SEMÁNTICO")
         self.tab_widget.addTab(self.codigo_intermedio_tab, "CODIGO INTERMEDIO")
+        self.tab_widget.addTab(self.optimizacion_tab, "OPTIMIZACIÓN")
 
         # Conectar evento de cambio de pestaña
         self.tab_widget.currentChanged.connect(self.on_tab_changed)
@@ -387,6 +395,10 @@ inicio"""
         codigo_intermedio_action.triggered.connect(lambda: self.ejecutar_analisis("Codigo intermedio"))
         analisis_menu.addAction(codigo_intermedio_action)
 
+        optimizacion_action = QAction("Optimización", main_window)
+        optimizacion_action.triggered.connect(lambda: self.ejecutar_analisis("Optimización"))
+        analisis_menu.addAction(optimizacion_action)
+
         analisis_menu.addSeparator()
 
         # Otras fases
@@ -460,6 +472,7 @@ inicio"""
                     self.lexico_tab.setPlainText("Análisis léxico no ejecutado")
                     self.sintactico_tab.setPlainText("Análisis sintáctico no ejecutado")
                     self.semantico_tab.setPlainText("Análisis semántico no ejecutado")
+                    self.optimizacion_tab.setPlainText("Optimización no ejecutada")
             else:
                 QMessageBox.information(
                     None,
@@ -490,6 +503,7 @@ inicio"""
                     self.lexico_tab.setPlainText("Análisis léxico no ejecutado")
                     self.sintactico_tab.setPlainText("Análisis sintáctico no ejecutado")
                     self.semantico_tab.setPlainText("Análisis semántico no ejecutado")
+                    self.optimizacion_tab.setPlainText("Optimización no ejecutada")
 
         except Exception as e:
             QMessageBox.critical(None, "Error", f"No se pudo cargar el archivo:\n{str(e)}")
@@ -813,6 +827,80 @@ inicio"""
 
             lista_expresiones = analizador_semantico.obtener_operaciones_aritmeticas()
             self.mostrar_interfaz_codigo_intermedio(lista_expresiones)
+
+        elif tipo_analisis == "Optimización":
+
+            self.optimizacion_tab.append("Iniciando optimización de código (con verificaciones previas)...")
+
+            # --- FASE 1: Verificación Léxica Obligatoria ---
+
+            self.optimizacion_tab.append("FASE 1: Ejecutando análisis léxico...")
+
+            analizador_lexico = LexicalAnalizerForMy(self.editor_widget.get_text())
+
+            hay_errores_lexicos = analizador_lexico.analizar_codigo()
+
+            if hay_errores_lexicos:
+                self.optimizacion_tab.append(">> Fallo LÉXICO detectado. Deteniendo optimización.")
+                self.ejecutar_analisis("Léxico")
+                return
+
+            self.optimizacion_tab.append(">> Análisis léxico exitoso. Procediendo a la Fase 2.")
+
+            # --- FASE 2: Verificación Sintáctica Obligatoria ---
+
+            self.optimizacion_tab.append("FASE 2: Ejecutando análisis sintáctico...")
+
+            patrones = [
+                r'\d+\.[a-zA-Z_][a-zA-Z0-9_]*', r'\d+[a-zA-Z_][a-zA-Z0-9_]*',
+                r'\d+(\.\d+){2,}', r'\d+\.\d+', r'\d+\.', r'[a-zA-Z_][a-zA-Z0-9_]*',
+                r'\d+', r'"[^"]*"', r'#.*?#', r'([,.;:(){}\[\]\+\-\*/=<>!?%&#|@^~])', r'(\s)'
+            ]
+
+            lista_tokens = Tokenizador.obtener_tokens_del_codigo(self.editor_widget.get_text(), patrones)
+            analizador_sintactico = AnalizadorSintactico(lista_tokens)
+            analisis_sintactico_exitoso = analizador_sintactico.analizar()
+
+            if not analisis_sintactico_exitoso:
+                self.optimizacion_tab.append(">> Fallo SINTÁCTICO detectado. Deteniendo optimización.")
+                self.ejecutar_analisis("Sintáctico")
+                return
+
+            self.optimizacion_tab.append(">> Análisis sintáctico exitoso. Procediendo a la Fase 3.")
+
+            # --- FASE 3: Ejecución del Análisis Semántico ---
+
+            self.optimizacion_tab.append("FASE 3: Ejecutando análisis semántico...")
+
+            codigo_linea_por_linea = Tokenizador.obtener_tokens_del_codigo_linea_por_linea(self.editor_widget.get_text(), patrones)
+            analizador_semantico = AnalizadorSemantico(codigo_linea_por_linea)
+            analizador_semantico.analizar_codigo()
+            errores_semanticos = analizador_semantico.obtener_errores()
+
+            if errores_semanticos:
+                self.optimizacion_tab.append(">> Fallo SEMÁNTICO detectado. Deteniendo optimización.")
+                self.ejecutar_analisis("Semántico")
+                return
+
+            self.optimizacion_tab.append(">> Análisis semántico sin errores. Iniciando optimización...")
+
+            # --- FASE 4: Optimización del Código ---
+
+            self.optimizacion_tab.append("\nFASE 4: Ejecutando optimizaciones...\n")
+
+            tabla_variables = analizador_semantico.obtener_tabla_simbolos()
+            optimizador = Optimizacion(self.editor_widget.get_text(), tabla_variables)
+            codigo_optimizado = optimizador.optimizar_codigo()
+
+            self.optimizacion_tab.append("\n>> Optimización completada exitosamente.")
+            self.optimizacion_tab.append(f">> Total de líneas optimizadas: {len(codigo_optimizado)}")
+
+            # Mostrar ventana con el código optimizado
+            ventana_optimizacion = VentanaOptimizacion(codigo_optimizado=codigo_optimizado, parent=None)
+            ventana_optimizacion.exec()
+
+            # Cambiar a la pestaña de optimización
+            self.tab_widget.setCurrentIndex(4)
 
     def mostrar_interfaz_codigo_intermedio(self, lista_expresiones):
         # 🔹 Transformar lista de tokens → lista de expresiones como cadenas

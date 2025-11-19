@@ -184,7 +184,6 @@ class Optimizacion:
         Optimización de propagación de copias.
         Elimina asignaciones del tipo x = y y reemplaza todas las
         ocurrencias posteriores de x por y.
-        TAMBIÉN propaga constantes: x = 5 -> reemplaza x por 5.
 
         Ejemplo:
         a = 3 + i
@@ -199,21 +198,21 @@ class Optimizacion:
         codigo_base = self.codigo_precalculado if hasattr(self, 'codigo_precalculado') else self.codigo_cochino
         codigo_prop = [linea[:] for linea in codigo_base]
 
-        # Diccionario para almacenar las copias detectadas: {variable_copia: variable_original_o_constante}
+        # Diccionario para almacenar las copias detectadas: {variable_copia: variable_original}
         copias = {}
         lineas_a_eliminar = []
 
-        # Primera pasada: detectar asignaciones de copia simple (x = y) o constante (x = 5)
+        # Primera pasada: detectar asignaciones de copia simple (x = y)
         for i, linea in enumerate(codigo_prop):
             # Buscar patrón: variable = variable ;
-            # Debe tener exactamente 4 tokens: var, =, var/const, ;
+            # Debe tener exactamente 4 tokens: var, =, var, ;
             if len(linea) == 4 and linea[1] == '=' and linea[3] == ';':
                 var_destino = linea[0]
                 var_origen = linea[2]
 
-                # Verificar que destino sea identificador y origen sea identificador O número
+                # Verificar que ambos sean identificadores (no números ni cadenas)
                 if (self._es_identificador(var_destino) and
-                        (self._es_identificador(var_origen) or self._es_numero(var_origen))):
+                        self._es_identificador(var_origen)):
 
                     # Si var_origen ya es una copia, propagar la original
                     if var_origen in copias:
@@ -239,14 +238,6 @@ class Optimizacion:
         codigo_final = [linea for i, linea in enumerate(codigo_prop) if i not in lineas_a_eliminar]
 
         return codigo_final
-
-    def _es_numero(self, token):
-        """Verifica si el token es un número (entero o decimal)"""
-        try:
-            float(token)
-            return True
-        except ValueError:
-            return False
 
     def _es_identificador(self, token):
         """

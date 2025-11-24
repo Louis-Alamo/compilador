@@ -19,7 +19,7 @@ class Optimizacion:
         ]
         self.tabla_de_variables = tabla_de_variables # Esta contiene variable y valores asignados
         self.codigo_cochino = Tokenizador.obtener_tokens_del_codigo_linea_por_linea(codigo_cochino, patrones)
-
+        print(tabla_de_variables)
 
     def optimizar_codigo(self):
         """
@@ -64,29 +64,29 @@ class Optimizacion:
 
         print(f"   Código después de reducción: {self.codigo_optimizado}\n")
         
-        # Optimización 3: Precálculo de expresiones constantes
-        print("3. Precálculo de expresiones constantes...")
+        # Optimización 3: Propagación de copias
+        print("3. Propagación de copias...")
         while True:
-            codigo_anterior = self.codigo_optimizado if not hasattr(self, 'codigo_precalculado') else self.codigo_precalculado
-            self.codigo_precalculado = self.precalculo_expresiones_constantes()
-            if self.codigo_precalculado == codigo_anterior:
-                break
-            print("   -> Se aplicó una ronda de precálculo de constantes.")
-            # Actualizar input para la siguiente iteración (precalculo usa self.codigo_optimizado)
-            self.codigo_optimizado = self.codigo_precalculado
-
-        print(f"   Código después de precálculo: {self.codigo_precalculado}\n")
-        
-        # Optimización 4: Propagación de copias
-        print("4. Propagación de copias...")
-        while True:
-            codigo_anterior = self.codigo_precalculado if not hasattr(self, 'codigo_final') else self.codigo_final
-            self.codigo_final = self.propagacion_de_copias()
-            if self.codigo_final == codigo_anterior:
+            codigo_anterior = self.codigo_optimizado if not hasattr(self, 'codigo_con_copias') else self.codigo_con_copias
+            self.codigo_con_copias = self.propagacion_de_copias()
+            if self.codigo_con_copias == codigo_anterior:
                 break
             print("   -> Se aplicó una ronda de propagación de copias.")
-            # Actualizar input para la siguiente iteración (propagacion usa self.codigo_precalculado)
-            self.codigo_precalculado = self.codigo_final
+            # Actualizar input para la siguiente iteración
+            self.codigo_optimizado = self.codigo_con_copias
+
+        print(f"   Código después de propagación de copias: {self.codigo_con_copias}\n")
+
+        # Optimización 4: Precálculo de expresiones constantes
+        print("4. Precálculo de expresiones constantes...")
+        while True:
+            codigo_anterior = self.codigo_con_copias if not hasattr(self, 'codigo_final') else self.codigo_final
+            self.codigo_final = self.precalculo_expresiones_constantes()
+            if self.codigo_final == codigo_anterior:
+                break
+            print("   -> Se aplicó una ronda de precálculo de constantes.")
+            # Actualizar input para la siguiente iteración
+            self.codigo_con_copias = self.codigo_final
 
         print(f"   Código final optimizado: {self.codigo_final}\n")
         
@@ -194,8 +194,8 @@ class Optimizacion:
 
         Resultado: f = a se elimina y f se reemplaza por a en todo el código
         """
-        # Trabajar sobre el código ya optimizado
-        codigo_base = self.codigo_precalculado if hasattr(self, 'codigo_precalculado') else self.codigo_cochino
+        # Trabajar sobre el código ya optimizado (ahora viene de reducción de potencias)
+        codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
         codigo_prop = [linea[:] for linea in codigo_base]
 
         # Diccionario para almacenar las copias detectadas: {variable_copia: variable_original}
@@ -226,6 +226,10 @@ class Optimizacion:
         # Segunda pasada: reemplazar las copias por sus originales
         for i, linea in enumerate(codigo_prop):
             if i not in lineas_a_eliminar:
+                # Evitar reemplazar en líneas de declaración
+                if len(linea) > 0 and linea[0] in ['entero', 'decimal', 'palabra']:
+                    continue
+
                 for j, token in enumerate(linea):
                     # Reemplazar variables que son copias por sus originales
                     if token in copias and self._es_identificador(token):
@@ -357,8 +361,8 @@ class Optimizacion:
         y tenemos: d = a + b * c;
         Se pre-calcula: d = 7; (1 + 2*3)
         """
-        # Trabajar sobre el código ya optimizado
-        codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
+        # Trabajar sobre el código ya optimizado (ahora viene de propagación de copias)
+        codigo_base = self.codigo_con_copias if hasattr(self, 'codigo_con_copias') else self.codigo_cochino
         codigo_opt = []
 
         for linea in codigo_base:

@@ -3,16 +3,19 @@ from PyQt6.QtCore import Qt
 from src.view.components.CodeEditor import CodeEditor
 
 
+from src.view.components.VentanaDetallesOptimizacion import VentanaDetallesOptimizacion
+
 class VentanaOptimizacion(QDialog):
-    def __init__(self, codigo_optimizado, parent=None):
+    def __init__(self, codigo_optimizado, estados_intermedios=None, parent=None):
         super().__init__(parent)
         self.codigo_optimizado = codigo_optimizado
+        self.estados_intermedios = estados_intermedios or {}
         self.setWindowTitle("Código Optimizado")
         self.resize(900, 600)
         self.setup_ui()
 
     def setup_ui(self):
-        # Layout principal
+        # ... (código existente hasta antes de los botones) ...
         layout = QVBoxLayout(self)
         
         # Título
@@ -39,15 +42,37 @@ class VentanaOptimizacion(QDialog):
         codigo_formateado = self.formatear_codigo_optimizado(self.codigo_optimizado)
         self.code_editor.set_text(codigo_formateado)
         
-        # Deshabilitar el timer del análisis léxico (no es necesario para código de solo lectura)
+        # Deshabilitar el timer del análisis léxico
         if hasattr(self.code_editor, 'timer'):
             self.code_editor.timer.stop()
         
         layout.addWidget(self.code_editor)
         
-        # Botón de cerrar
+        # Botones
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
+        
+        # Botón Mostrar Detalles
+        if self.estados_intermedios:
+            btn_detalles = QPushButton("Mostrar Detalles")
+            btn_detalles.setStyleSheet("""
+                QPushButton {
+                    background-color: #2da44e;
+                    color: white;
+                    border: none;
+                    padding: 10px 24px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    min-width: 100px;
+                    margin-right: 10px;
+                }
+                QPushButton:hover {
+                    background-color: #2c974b;
+                }
+            """)
+            btn_detalles.clicked.connect(self.mostrar_detalles)
+            btn_layout.addWidget(btn_detalles)
         
         btn_cerrar = QPushButton("Cerrar")
         btn_cerrar.setStyleSheet("""
@@ -81,6 +106,10 @@ class VentanaOptimizacion(QDialog):
                 background-color: #ffffff;
             }
         """)
+
+    def mostrar_detalles(self):
+        dialogo = VentanaDetallesOptimizacion(self.estados_intermedios, self)
+        dialogo.exec()
 
     def formatear_codigo_optimizado(self, codigo_optimizado):
         """

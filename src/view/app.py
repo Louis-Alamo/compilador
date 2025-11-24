@@ -896,13 +896,17 @@ inicio"""
 
             tabla_variables = analizador_semantico.obtener_tabla_simbolos()
             optimizador = Optimizacion(self.editor_widget.get_text(), tabla_variables)
-            codigo_optimizado = optimizador.optimizar_codigo()
+            codigo_optimizado, estados_intermedios = optimizador.optimizar_codigo()
 
             self.optimizacion_tab.append("\n>> Optimización completada exitosamente.")
             self.optimizacion_tab.append(f">> Total de líneas optimizadas: {len(codigo_optimizado)}")
 
             # Mostrar ventana con el código optimizado
-            ventana_optimizacion = VentanaOptimizacion(codigo_optimizado=codigo_optimizado, parent=None)
+            ventana_optimizacion = VentanaOptimizacion(
+                codigo_optimizado=codigo_optimizado, 
+                estados_intermedios=estados_intermedios,
+                parent=None
+            )
             ventana_optimizacion.exec()
 
             # Cambiar a la pestaña de optimización

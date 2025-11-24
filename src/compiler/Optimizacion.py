@@ -38,6 +38,8 @@ class Optimizacion:
         """
         print("=== INICIANDO OPTIMIZACIONES ===\n")
         
+        estados_intermedios = {}
+        
         # Optimización 1: Eliminación de secuencias nulas
         print("1. Eliminación de secuencias nulas...")
         while True:
@@ -50,6 +52,7 @@ class Optimizacion:
             self.codigo_cochino = self.codigo_sin_nulas 
             
         print(f"   Código después de eliminar nulas: {self.codigo_sin_nulas}\n")
+        estados_intermedios['Eliminación de Nulas'] = [linea[:] for linea in self.codigo_sin_nulas]
         
         # Optimización 2: Reducción de potencias
         print("2. Reducción de potencias...")
@@ -63,35 +66,38 @@ class Optimizacion:
             self.codigo_sin_nulas = self.codigo_optimizado
 
         print(f"   Código después de reducción: {self.codigo_optimizado}\n")
+        estados_intermedios['Reducción de Potencias'] = [linea[:] for linea in self.codigo_optimizado]
         
-        # Optimización 3: Propagación de copias
-        print("3. Propagación de copias...")
+        # Optimización 3: Precálculo de expresiones constantes
+        print("3. Precálculo de expresiones constantes...")
         while True:
-            codigo_anterior = self.codigo_optimizado if not hasattr(self, 'codigo_con_copias') else self.codigo_con_copias
-            self.codigo_con_copias = self.propagacion_de_copias()
-            if self.codigo_con_copias == codigo_anterior:
-                break
-            print("   -> Se aplicó una ronda de propagación de copias.")
-            # Actualizar input para la siguiente iteración
-            self.codigo_optimizado = self.codigo_con_copias
-
-        print(f"   Código después de propagación de copias: {self.codigo_con_copias}\n")
-
-        # Optimización 4: Precálculo de expresiones constantes
-        print("4. Precálculo de expresiones constantes...")
-        while True:
-            codigo_anterior = self.codigo_con_copias if not hasattr(self, 'codigo_final') else self.codigo_final
-            self.codigo_final = self.precalculo_expresiones_constantes()
-            if self.codigo_final == codigo_anterior:
+            codigo_anterior = self.codigo_optimizado if not hasattr(self, 'codigo_precalculado') else self.codigo_precalculado
+            self.codigo_precalculado = self.precalculo_expresiones_constantes()
+            if self.codigo_precalculado == codigo_anterior:
                 break
             print("   -> Se aplicó una ronda de precálculo de constantes.")
             # Actualizar input para la siguiente iteración
-            self.codigo_con_copias = self.codigo_final
+            self.codigo_optimizado = self.codigo_precalculado
+
+        print(f"   Código después de precálculo: {self.codigo_precalculado}\n")
+        estados_intermedios['Precálculo de Constantes'] = [linea[:] for linea in self.codigo_precalculado]
+        
+        # Optimización 4: Propagación de copias
+        print("4. Propagación de copias...")
+        while True:
+            codigo_anterior = self.codigo_precalculado if not hasattr(self, 'codigo_final') else self.codigo_final
+            self.codigo_final = self.propagacion_de_copias()
+            if self.codigo_final == codigo_anterior:
+                break
+            print("   -> Se aplicó una ronda de propagación de copias.")
+            # Actualizar input para la siguiente iteración
+            self.codigo_precalculado = self.codigo_final
 
         print(f"   Código final optimizado: {self.codigo_final}\n")
+        estados_intermedios['Propagación de Copias'] = [linea[:] for linea in self.codigo_final]
         
         print("=== OPTIMIZACIONES COMPLETADAS ===")
-        return self.codigo_final
+        return self.codigo_final, estados_intermedios
 
     def reduccion_de_potencias(self):
         """
@@ -194,8 +200,8 @@ class Optimizacion:
 
         Resultado: f = a se elimina y f se reemplaza por a en todo el código
         """
-        # Trabajar sobre el código ya optimizado (ahora viene de reducción de potencias)
-        codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
+        # Trabajar sobre el código ya optimizado (ahora viene de precálculo)
+        codigo_base = self.codigo_precalculado if hasattr(self, 'codigo_precalculado') else self.codigo_cochino
         codigo_prop = [linea[:] for linea in codigo_base]
 
         # Diccionario para almacenar las copias detectadas: {variable_copia: variable_original}
@@ -361,8 +367,8 @@ class Optimizacion:
         y tenemos: d = a + b * c;
         Se pre-calcula: d = 7; (1 + 2*3)
         """
-        # Trabajar sobre el código ya optimizado (ahora viene de propagación de copias)
-        codigo_base = self.codigo_con_copias if hasattr(self, 'codigo_con_copias') else self.codigo_cochino
+        # Trabajar sobre el código ya optimizado (ahora viene de reducción de potencias)
+        codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
         codigo_opt = []
 
         for linea in codigo_base:
@@ -370,6 +376,12 @@ class Optimizacion:
             if len(linea) >= 4 and linea[1] == '=' and linea[-1] == ';':
                 var_destino = linea[0]
                 expresion = linea[2:-1]  # Todo entre '=' y ';'
+
+                # Evitar convertir asignaciones simples (a = b) en constantes
+                # para que Propagación de Copias pueda trabajar después
+                if len(expresion) == 1 and self._es_identificador(expresion[0]):
+                    codigo_opt.append(linea[:])
+                    continue
 
                 # Verificar si todos los identificadores en la expresión tienen valor
                 if self._puede_precalcular(expresion):

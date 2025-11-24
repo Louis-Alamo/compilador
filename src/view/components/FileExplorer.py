@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
                              QMessageBox, QHeaderView)
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtGui import QIcon, QFont
+import qtawesome as qta
 
 
 class FileExplorer(QWidget):
@@ -231,33 +232,36 @@ class FileExplorer(QWidget):
         """)
 
     def get_file_icon(self, filename):
-        """Retorna el emoji del icono según el tipo de archivo"""
+        """Retorna el icono según el tipo de archivo usando qtawesome"""
         if os.path.isdir(filename):
-            return "📁"
+            return qta.icon('fa5s.folder', color='#E8B339')
 
         extension = os.path.splitext(filename)[1].lower()
 
+        # Mapeo de extensiones a iconos de FontAwesome
+        # Usamos colores distintivos para cada tipo
         icons = {
-            '.py': '🐍',
-            '.js': '📜',
-            '.ts': '📘',
-            '.html': '🌐',
-            '.css': '🎨',
-            '.json': '📋',
-            '.md': '📝',
-            '.txt': '📄',
-            '.pdf': '📕',
-            '.jpg': '🖼️',
-            '.jpeg': '🖼️',
-            '.png': '🖼️',
-            '.gif': '🖼️',
-            '.zip': '📦',
-            '.env': '⚙️',
-            '.gitignore': '🚫',
-            '.sql': '🗃️',
+            '.py': ('fa5b.python', '#3776AB'),
+            '.js': ('fa5b.js', '#F7DF1E'),
+            '.ts': ('fa5s.code', '#3178C6'),
+            '.html': ('fa5b.html5', '#E34F26'),
+            '.css': ('fa5b.css3-alt', '#1572B6'),
+            '.json': ('fa5s.file-code', '#F2931E'),
+            '.md': ('fa5b.markdown', '#000000'),
+            '.txt': ('fa5s.file-alt', '#808080'),
+            '.pdf': ('fa5s.file-pdf', '#F40F02'),
+            '.jpg': ('fa5s.file-image', '#20B2AA'),
+            '.jpeg': ('fa5s.file-image', '#20B2AA'),
+            '.png': ('fa5s.file-image', '#20B2AA'),
+            '.gif': ('fa5s.file-image', '#20B2AA'),
+            '.zip': ('fa5s.file-archive', '#FFA500'),
+            '.env': ('fa5s.cog', '#606060'),
+            '.gitignore': ('fa5b.git', '#F05032'),
+            '.sql': ('fa5s.database', '#00758F'),
         }
 
-        return icons.get(extension, '📄')
+        icon_name, color = icons.get(extension, ('fa5s.file', '#808080'))
+        return qta.icon(icon_name, color=color)
 
     def select_directory(self):
         """Abre un diálogo para seleccionar una carpeta"""
@@ -290,7 +294,8 @@ class FileExplorer(QWidget):
         try:
             # Crear item raíz con el nombre de la carpeta
             root_name = os.path.basename(self.current_directory) or self.current_directory
-            root_item = QTreeWidgetItem([f"📁 {root_name.upper()}"])
+            root_item = QTreeWidgetItem([f"{root_name.upper()}"])
+            root_item.setIcon(0, qta.icon('fa5s.folder-open', color='#E8B339'))
             root_item.setData(0, Qt.ItemDataRole.UserRole, self.current_directory)
             self.tree_widget.addTopLevelItem(root_item)
 
@@ -319,14 +324,14 @@ class FileExplorer(QWidget):
                 item_path = os.path.join(directory_path, item_name)
 
                 if os.path.isdir(item_path):
-                    icon = "📁"
-                    folder_item = QTreeWidgetItem([f"{icon} {item_name}"])
+                    folder_item = QTreeWidgetItem([f"{item_name}"])
+                    folder_item.setIcon(0, qta.icon('fa5s.folder', color='#E8B339'))
                     folder_item.setData(0, Qt.ItemDataRole.UserRole, item_path)
                     items.append(("folder", folder_item, item_path))
 
                 elif os.path.isfile(item_path):
-                    icon = self.get_file_icon(item_name)
-                    file_item = QTreeWidgetItem([f"{icon} {item_name}"])
+                    file_item = QTreeWidgetItem([f"{item_name}"])
+                    file_item.setIcon(0, self.get_file_icon(item_name))
                     file_item.setData(0, Qt.ItemDataRole.UserRole, item_path)
                     items.append(("file", file_item, None))
 

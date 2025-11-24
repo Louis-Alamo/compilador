@@ -229,6 +229,12 @@ class EditorApp:
         self.file_explorer = FileExplorer()
         # Conectar la señal para abrir archivos
         self.file_explorer.file_selected.connect(self.open_file_from_explorer)
+        
+        # Establecer directorio por defecto
+        default_path = "/Users/elpanadero/Documents/programacion/compilador/src/data"
+        if os.path.exists(default_path):
+            self.file_explorer.set_directory(default_path)
+            
         main_splitter.addWidget(self.file_explorer)
 
         # === PANEL DERECHO: EDITOR + PESTAÑAS ===

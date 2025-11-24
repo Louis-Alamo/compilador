@@ -20,7 +20,7 @@ class NumberBar(QWidget):
 
     def setup_font(self):
         """Configura la fuente para que coincida con el editor"""
-        font = QFont("Fira Code", 12)
+        font = QFont("Fira Code", 18)  # Igual que el editor para alineación perfecta
         font.setStyleHint(QFont.StyleHint.Monospace)
         font.setFixedPitch(True)
         self.setFont(font)
@@ -33,9 +33,9 @@ class NumberBar(QWidget):
     def update_width(self, *args):
         """Actualiza el ancho basado en el número de líneas"""
         digits = len(str(max(1, self.editor.blockCount())))
-        # Espacio extra para padding y margen
+        # Espacio extra para padding y margen - mejorado
         char_width = self.fontMetrics().horizontalAdvance('9')
-        space = 20 + char_width * max(2, digits)  # Mínimo 2 dígitos
+        space = 32 + char_width * max(3, digits)  # Más padding y mínimo 3 dígitos
         self.setFixedWidth(space)
 
     @pyqtSlot(QRect, int)
@@ -58,13 +58,13 @@ class NumberBar(QWidget):
         if self.is_dark_theme:
             bg_color = QColor("#21262d")
             text_color = QColor("#7d8590")
-            current_line_color = QColor("#e6edf3")
+            current_line_color = QColor("#0969da")
             border_color = QColor("#30363d")
         else:
-            bg_color = QColor("#f6f8fa")
-            text_color = QColor("#656d76")
-            current_line_color = QColor("#24292f")
-            border_color = QColor("#d1d9e0")
+            bg_color = QColor("#fafbfc")
+            text_color = QColor("#6e7781")
+            current_line_color = QColor("#0969da")
+            border_color = QColor("#d0d7de")
 
         # Rellenar fondo
         painter.fillRect(event.rect(), bg_color)
@@ -85,6 +85,8 @@ class NumberBar(QWidget):
         # Dibujar números de línea
         block = self.editor.firstVisibleBlock()
         block_number = block.blockNumber()
+        
+        # Obtener geometría inicial
         top = self.editor.blockBoundingGeometry(block).translated(
             self.editor.contentOffset()).top()
         bottom = top + self.editor.blockBoundingRect(block).height()
@@ -95,27 +97,35 @@ class NumberBar(QWidget):
 
                 # Determinar color del texto
                 if block_number + 1 == current_line_number:
-                    painter.setPen(current_line_color)
-                    # Opcional: resaltar fondo de línea actual
+                    painter.setPen(QPen(current_line_color, 1))
+                    # Resaltar fondo de línea actual con estilo más sutil
                     highlight_rect = QRect(0, int(top), self.width() - 1,
                                            int(self.editor.blockBoundingRect(block).height()))
                     if self.is_dark_theme:
                         painter.fillRect(highlight_rect, QColor("#2d333b"))
                     else:
-                        painter.fillRect(highlight_rect, QColor("#eef4fd"))
+                        painter.fillRect(highlight_rect, QColor("#ddf4ff"))
                 else:
                     painter.setPen(text_color)
 
-                # Dibujar número con padding derecho
-                width = self.width() - 8
-                height = self.fontMetrics().height()
-                painter.drawText(4, int(top), width, height,
+                # Dibujar número con mejor padding y alineación exacta
+                width = self.width() - 12
+                # Usar la altura completa del bloque para alineación correcta
+                block_height = int(self.editor.blockBoundingRect(block).height())
+                
+                # Ajuste fino vertical para centrar con el texto del editor
+                # El editor centra el texto en la línea, así que AlignVCenter debería funcionar bien
+                # si las alturas coinciden.
+                painter.drawText(8, int(top), width, block_height,
                                  Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                                  number)
 
             block = block.next()
-            top = bottom
-            bottom = top + self.editor.blockBoundingRect(block).height()
+            # Recalcular geometría exacta para el siguiente bloque
+            if block.isValid():
+                top = self.editor.blockBoundingGeometry(block).translated(
+                    self.editor.contentOffset()).top()
+                bottom = top + self.editor.blockBoundingRect(block).height()
             block_number += 1
 
     def wheelEvent(self, event):

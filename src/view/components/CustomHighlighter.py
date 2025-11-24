@@ -9,11 +9,12 @@ class CustomHighlighter(QSyntaxHighlighter):
         self.rules = []
         self.error_tokens = {}  # Diccionario: línea -> lista de tokens con error
 
-        # Formato exclusivo para errores - más grueso y llamativo
+        # Formato exclusivo para errores - más visible y profesional
         self.error_format = QTextCharFormat()
-        self.error_format.setUnderlineColor(QColor("#ff3333"))  # Rojo más intenso
-        self.error_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.WaveUnderline)  # Línea ondulada
-        self.error_format.setBackground(QColor(255, 85, 85, 30))  # Fondo rojo semi-transparente
+        self.error_format.setUnderlineColor(QColor("#ff0000"))  # Rojo brillante
+        self.error_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.WaveUnderline)
+        self.error_format.setForeground(QColor("#ff0000"))  # Texto rojo
+        self.error_format.setFontWeight(QFont.Weight.Bold)  # Negrita para mayor visibilidad
 
     def set_rules(self, rule_definitions: dict):
         self.rules = []
@@ -25,6 +26,10 @@ class CustomHighlighter(QSyntaxHighlighter):
                 fmt.setFontWeight(QFont.Weight.Bold)
             if fmt_options.get('italic', False):
                 fmt.setFontItalic(True)
+            if fmt_options.get('underline', False):
+                fmt.setFontUnderline(True)
+            if 'background' in fmt_options:
+                fmt.setBackground(QColor(fmt_options['background']))
 
             for word in words:
                 if not word or not word.isidentifier():

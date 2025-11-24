@@ -16,6 +16,9 @@ class CodeEditor(QWidget):
         self.setup_editor()
         self.set_light_theme()
         self.setup_layout()
+        
+        # Sincronizar tema con NumberBar
+        self.number_bar.set_dark_theme(False)
 
         # Temporizador para análisis léxico cada 5 segundos
         self.timer = QTimer(self)

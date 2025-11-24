@@ -68,33 +68,33 @@ class Optimizacion:
         print(f"   Código después de reducción: {self.codigo_optimizado}\n")
         estados_intermedios['Reducción de Potencias'] = [linea[:] for linea in self.codigo_optimizado]
         
-        # Optimización 3: Precálculo de expresiones constantes
-        print("3. Precálculo de expresiones constantes...")
+        # Optimización 3: Propagación de copias
+        print("3. Propagación de copias...")
         while True:
-            codigo_anterior = self.codigo_optimizado if not hasattr(self, 'codigo_precalculado') else self.codigo_precalculado
-            self.codigo_precalculado = self.precalculo_expresiones_constantes()
-            if self.codigo_precalculado == codigo_anterior:
-                break
-            print("   -> Se aplicó una ronda de precálculo de constantes.")
-            # Actualizar input para la siguiente iteración
-            self.codigo_optimizado = self.codigo_precalculado
-
-        print(f"   Código después de precálculo: {self.codigo_precalculado}\n")
-        estados_intermedios['Precálculo de Constantes'] = [linea[:] for linea in self.codigo_precalculado]
-        
-        # Optimización 4: Propagación de copias
-        print("4. Propagación de copias...")
-        while True:
-            codigo_anterior = self.codigo_precalculado if not hasattr(self, 'codigo_final') else self.codigo_final
-            self.codigo_final = self.propagacion_de_copias()
-            if self.codigo_final == codigo_anterior:
+            codigo_anterior = self.codigo_optimizado if not hasattr(self, 'codigo_con_copias') else self.codigo_con_copias
+            self.codigo_con_copias = self.propagacion_de_copias()
+            if self.codigo_con_copias == codigo_anterior:
                 break
             print("   -> Se aplicó una ronda de propagación de copias.")
             # Actualizar input para la siguiente iteración
-            self.codigo_precalculado = self.codigo_final
+            self.codigo_optimizado = self.codigo_con_copias
+
+        print(f"   Código después de propagación de copias: {self.codigo_con_copias}\n")
+        estados_intermedios['Propagación de Copias'] = [linea[:] for linea in self.codigo_con_copias]
+
+        # Optimización 4: Precálculo de expresiones constantes
+        print("4. Precálculo de expresiones constantes...")
+        while True:
+            codigo_anterior = self.codigo_con_copias if not hasattr(self, 'codigo_final') else self.codigo_final
+            self.codigo_final = self.precalculo_expresiones_constantes()
+            if self.codigo_final == codigo_anterior:
+                break
+            print("   -> Se aplicó una ronda de precálculo de constantes.")
+            # Actualizar input para la siguiente iteración
+            self.codigo_con_copias = self.codigo_final
 
         print(f"   Código final optimizado: {self.codigo_final}\n")
-        estados_intermedios['Propagación de Copias'] = [linea[:] for linea in self.codigo_final]
+        estados_intermedios['Precálculo de Constantes'] = [linea[:] for linea in self.codigo_final]
         
         print("=== OPTIMIZACIONES COMPLETADAS ===")
         return self.codigo_final, estados_intermedios
@@ -200,8 +200,8 @@ class Optimizacion:
 
         Resultado: f = a se elimina y f se reemplaza por a en todo el código
         """
-        # Trabajar sobre el código ya optimizado
-        codigo_base = self.codigo_precalculado if hasattr(self, 'codigo_precalculado') else self.codigo_cochino
+        # Trabajar sobre el código ya optimizado (ahora viene de reducción de potencias)
+        codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
         codigo_prop = [linea[:] for linea in codigo_base]
 
         # Diccionario para almacenar las copias detectadas: {variable_copia: variable_original}
@@ -232,6 +232,10 @@ class Optimizacion:
         # Segunda pasada: reemplazar las copias por sus originales
         for i, linea in enumerate(codigo_prop):
             if i not in lineas_a_eliminar:
+                # Evitar reemplazar en líneas de declaración
+                if len(linea) > 0 and linea[0] in ['entero', 'decimal', 'palabra']:
+                    continue
+
                 for j, token in enumerate(linea):
                     # Reemplazar variables que son copias por sus originales
                     if token in copias and self._es_identificador(token):
@@ -359,11 +363,11 @@ class Optimizacion:
         Rastrea valores dinámicamente línea por línea.
         
         Ejemplo:
-        a = 5; → valores_conocidos = {a: 5}
-        b = a; → NO se precalcula (es copia simple para propagación)
-        c = b + 3; → Si b tiene valor conocido, c = valor_b + 3
+        a = 5; → valores_conocidos['a'] = 5
+        c = a + 3; → c = 5 + 3 = 8, valores_conocidos['c'] = 8
         """
-        codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
+        # Trabajar sobre el código ya optimizado (después de propagación)
+        codigo_base = self.codigo_con_copias if hasattr(self, 'codigo_con_copias') else self.codigo_cochino
         codigo_opt = []
         valores_conocidos = {}  # Rastreo dinámico de valores
 
@@ -373,33 +377,34 @@ class Optimizacion:
                 var_destino = linea[0]
                 expresion = linea[2:-1]  # Todo entre '=' y ';'
 
-                # Si es una copia simple (x = y), NO precalcular para que Propagación lo maneje
-                if len(expresion) == 1 and self._es_identificador(expresion[0]):
-                    codigo_opt.append(linea[:])
-                    # No actualizar valores_conocidos para copias simples
-                    continue
-
-                # Intentar precalcular la expresión
+                # Verificar si todos los identificadores en la expresión tienen valores conocidos
                 if self._puede_precalcular_dinamico(expresion, valores_conocidos):
                     try:
+                        # Construir la expresión reemplazando variables por valores
                         expresion_evaluable = self._construir_expresion_evaluable_dinamica(expresion, valores_conocidos)
+                        
+                        # Evaluar la expresión
                         resultado = eval(expresion_evaluable)
                         
-                        # Crear nueva línea con el resultado
+                        # Crear nueva línea: variable = resultado ;
                         nueva_linea = [var_destino, '=', str(resultado), ';']
                         codigo_opt.append(nueva_linea)
                         
-                        # Actualizar valores conocidos
+                        # Actualizar valores conocidos para esta variable
                         valores_conocidos[var_destino] = resultado
                         continue
                     except Exception as e:
-                        # Si falla la evaluación, mantener original
+                        # Si hay error en la evaluación, mantener línea original
                         pass
 
-                # Si la expresión es solo un número, registrarlo
+                # Si la expresión es solo un número literal, registrarlo
                 if len(expresion) == 1:
                     try:
-                        valor = float(expresion[0]) if '.' in expresion[0] else int(expresion[0])
+                        # Intentar convertir a número
+                        if '.' in expresion[0]:
+                            valor = float(expresion[0])
+                        else:
+                            valor = int(expresion[0])
                         valores_conocidos[var_destino] = valor
                     except:
                         pass
@@ -412,7 +417,7 @@ class Optimizacion:
     def _puede_precalcular_dinamico(self, expresion, valores_conocidos):
         """
         Verifica si todos los identificadores en la expresión tienen valores conocidos
-        en el diccionario de valores dinámicos.
+        en el diccionario dinámico.
         """
         for token in expresion:
             if self._es_identificador(token):

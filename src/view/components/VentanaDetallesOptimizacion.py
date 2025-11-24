@@ -32,8 +32,8 @@ class VentanaDetallesOptimizacion(QDialog):
         fases = [
             ('Eliminación de Nulas', 0, 0),
             ('Reducción de Potencias', 0, 1),
-            ('Precálculo de Constantes', 1, 0),
-            ('Propagación de Copias', 1, 1)
+            ('Propagación de Copias', 1, 0),
+            ('Precálculo de Constantes', 1, 1)
         ]
 
         for nombre_fase, row, col in fases:

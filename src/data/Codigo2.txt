@@ -1,0 +1,15 @@
+fin
+	entero a, b, c, d, e;
+	
+	a = 5;
+	b = a;
+	c = b + 3;
+	d = c * 2;
+	b = a;
+	e = d - a;
+	a = 10;
+	c = a + b;
+	b = 7;
+	
+
+inicio

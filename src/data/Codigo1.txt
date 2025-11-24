@@ -1,0 +1,10 @@
+%START
+%DECIMAL &x, &y, &z;
+&x = 4.5;
+&y = &x;
+&z = &y * 2.0;
+&y = 10.0;
+&z = &z - &y;
+&z = &z / &x;
+%PANTALLA "Final Z:", &z;
+%END

@@ -200,7 +200,7 @@ class Optimizacion:
 
         Resultado: f = a se elimina y f se reemplaza por a en todo el código
         """
-        # Trabajar sobre el código ya optimizado (ahora viene de precálculo)
+        # Trabajar sobre el código ya optimizado
         codigo_base = self.codigo_precalculado if hasattr(self, 'codigo_precalculado') else self.codigo_cochino
         codigo_prop = [linea[:] for linea in codigo_base]
 
@@ -232,10 +232,6 @@ class Optimizacion:
         # Segunda pasada: reemplazar las copias por sus originales
         for i, linea in enumerate(codigo_prop):
             if i not in lineas_a_eliminar:
-                # Evitar reemplazar en líneas de declaración
-                if len(linea) > 0 and linea[0] in ['entero', 'decimal', 'palabra']:
-                    continue
-
                 for j, token in enumerate(linea):
                     # Reemplazar variables que son copias por sus originales
                     if token in copias and self._es_identificador(token):
@@ -359,17 +355,17 @@ class Optimizacion:
 
     def precalculo_expresiones_constantes(self):
         """
-        Pre-calcula expresiones donde todas las variables tienen valores asignados
-        en la tabla de símbolos.
+        Pre-calcula expresiones donde todas las variables tienen valores asignados.
+        Rastrea valores dinámicamente línea por línea.
         
         Ejemplo:
-        Si a=1, b=2, c=3 están en tabla_simbolos
-        y tenemos: d = a + b * c;
-        Se pre-calcula: d = 7; (1 + 2*3)
+        a = 5; → valores_conocidos = {a: 5}
+        b = a; → NO se precalcula (es copia simple para propagación)
+        c = b + 3; → Si b tiene valor conocido, c = valor_b + 3
         """
-        # Trabajar sobre el código ya optimizado (ahora viene de reducción de potencias)
         codigo_base = self.codigo_optimizado if hasattr(self, 'codigo_optimizado') else self.codigo_cochino
         codigo_opt = []
+        valores_conocidos = {}  # Rastreo dinámico de valores
 
         for linea in codigo_base:
             # Buscar patrón de asignación: variable = expresión ;
@@ -377,37 +373,64 @@ class Optimizacion:
                 var_destino = linea[0]
                 expresion = linea[2:-1]  # Todo entre '=' y ';'
 
-                # Evitar convertir asignaciones simples (a = b) en constantes
-                # para que Propagación de Copias pueda trabajar después
+                # Si es una copia simple (x = y), NO precalcular para que Propagación lo maneje
                 if len(expresion) == 1 and self._es_identificador(expresion[0]):
                     codigo_opt.append(linea[:])
+                    # No actualizar valores_conocidos para copias simples
                     continue
 
-                # Verificar si todos los identificadores en la expresión tienen valor
-                if self._puede_precalcular(expresion):
+                # Intentar precalcular la expresión
+                if self._puede_precalcular_dinamico(expresion, valores_conocidos):
                     try:
-                        # Construir la expresión reemplazando variables por valores
-                        expresion_evaluable = self._construir_expresion_evaluable(expresion)
-                        
-                        # Evaluar la expresión
+                        expresion_evaluable = self._construir_expresion_evaluable_dinamica(expresion, valores_conocidos)
                         resultado = eval(expresion_evaluable)
                         
-                        # Crear nueva línea: variable = resultado ;
+                        # Crear nueva línea con el resultado
                         nueva_linea = [var_destino, '=', str(resultado), ';']
                         codigo_opt.append(nueva_linea)
                         
-                        # Actualizar el valor en la tabla de símbolos
-                        self.tabla_de_variables.actualizar_valor(var_destino, resultado)
-                        
+                        # Actualizar valores conocidos
+                        valores_conocidos[var_destino] = resultado
                         continue
                     except Exception as e:
-                        # Si hay error en la evaluación, mantener línea original
+                        # Si falla la evaluación, mantener original
+                        pass
+
+                # Si la expresión es solo un número, registrarlo
+                if len(expresion) == 1:
+                    try:
+                        valor = float(expresion[0]) if '.' in expresion[0] else int(expresion[0])
+                        valores_conocidos[var_destino] = valor
+                    except:
                         pass
 
             # Si no se pudo optimizar, mantener línea original
             codigo_opt.append(linea[:])
 
         return codigo_opt
+
+    def _puede_precalcular_dinamico(self, expresion, valores_conocidos):
+        """
+        Verifica si todos los identificadores en la expresión tienen valores conocidos
+        en el diccionario de valores dinámicos.
+        """
+        for token in expresion:
+            if self._es_identificador(token):
+                if token not in valores_conocidos:
+                    return False
+        return True
+
+    def _construir_expresion_evaluable_dinamica(self, expresion, valores_conocidos):
+        """
+        Construye una expresión evaluable usando valores conocidos dinámicamente.
+        """
+        expresion_eval = []
+        for token in expresion:
+            if self._es_identificador(token):
+                expresion_eval.append(str(valores_conocidos[token]))
+            else:
+                expresion_eval.append(token)
+        return ' '.join(expresion_eval)
 
     def _puede_precalcular(self, expresion):
         """

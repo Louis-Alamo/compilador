@@ -83,9 +83,8 @@ class VentanaDetallesOptimizacion(QDialog):
         """)
         layout.addWidget(lbl)
 
-        # Editor de código (solo lectura)
+        # Editor de código (modificable)
         editor = CodeEditor()
-        editor.editor.setReadOnly(True)
         editor.set_text(self.formatear_codigo(codigo))
         
         # Desactivar timer

@@ -1,16 +1,17 @@
 # Editor de Código Pitufos
 
-Este es un compilador completo desarrollado para la materia de Lenguajes y Autómatas. La aplicación proporciona una interfaz gráfica moderna para editar código fuente y visualizar las diferentes fases del proceso de compilación.
+Este proyecto implementa las fases iniciales de un compilador para la materia de Lenguajes y Autómatas. La aplicación proporciona una interfaz gráfica moderna para editar código fuente y visualizar el análisis y optimización del mismo.
 
 ## Características
 
-El compilador incluye las siguientes fases de análisis:
+El proyecto incluye las siguientes fases de análisis:
 
 *   **Análisis Léxico:** Tokenización del código fuente y detección de errores léxicos.
 *   **Análisis Sintáctico:** Verificación de la estructura gramatical del código.
-*   **Análisis Semántico:** Comprobación de tipos y reglas semánticas, incluyendo la generación de árboles de expresiones visualizados en PDF.
-*   **Código Intermedio:** Generación de una representación intermedia del código.
-*   **Optimización:** Aplicación de técnicas de optimización al código intermedio.
+*   **Análisis Semántico:** Comprobación de tipos y reglas semánticas.
+*   **Optimización:** Aplicación de técnicas de optimización (eliminación de código muerto, propagación de copias, etc.).
+
+> **Nota:** Este no es un compilador completo (no genera código objeto ni ejecutable), sino una implementación de las fases de análisis y optimización.
 
 ## Documentación del Lenguaje
 

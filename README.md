@@ -61,3 +61,8 @@ python src/main.py
     *   `models/`: Modelos de datos (ej. Árboles).
     *   `util/`: Utilidades varias (Tokenizador, Generador de PDF).
     *   `data/`: Archivos de datos y salida (ej. PDFs generados).
+
+## Colaboradores
+
+*   [Carlos Emmanuel](https://github.com/Carlos-Emmanuel-ISC6)
+*   [Louis Alamo](https://github.com/Louis-Alamo)
